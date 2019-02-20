@@ -6,12 +6,42 @@ import tempfile
 
 import trees
 
+class SentenceScore(object):
+    def __init__(self,
+            length, skip,
+            recall, precision, matched_bracket, gold_bracket, guess_bracket, cross_bracket,
+            words, correct_tags, tagging_accuracy
+            ):
+        self.length = int(length)
+        self.skip = bool(skip)
+        self.recall = float(recall)
+        self.precision = float(precision)
+        self.matched_bracket = int(matched_bracket)
+        self.gold_bracket = int(gold_bracket)
+        self.guess_bracket = int(guess_bracket)
+        self.cross_bracket = int(cross_bracket)
+        self.words = int(words)
+        self.correct_tags = int(correct_tags)
+        self.tagging_accuracy = float(tagging_accuracy)
+
+    def __str__(self):
+        return "(MatchedBracket={:.2f}, GoldBracket={:.2f}, GuessBracket={:.2f})".format(
+            self.matched_bracket, self.gold_bracket, self.guess_bracket)
+
 class FScore(object):
-    def __init__(self, recall, precision, fscore, complete_match, tagging_accuracy=100):
+    def __init__(self,
+            recall,
+            precision,
+            fscore,
+            complete_match,
+            sentence_scores=None,
+            tagging_accuracy=100,
+            ):
         self.recall = recall
         self.precision = precision
         self.fscore = fscore
         self.complete_match = complete_match
+        self.sentence_scores = sentence_scores
         self.tagging_accuracy = tagging_accuracy
 
     def __str__(self):
@@ -22,7 +52,15 @@ class FScore(object):
             return "(Recall={:.2f}, Precision={:.2f}, FScore={:.2f}, CompleteMatch={:.2f})".format(
                 self.recall, self.precision, self.fscore, self.complete_match)
 
-def evalb(evalb_dir, gold_trees, predicted_trees, ref_gold_path=None):
+INT = "(\d+)"
+FLOAT = "(\d+\.\d+)"
+SEP = "\s+"
+EVALB_PATTERN = f"\s*{INT}{SEP}{INT}{SEP}{INT}{SEP}{FLOAT}{SEP}{FLOAT}{SEP}{INT}{SEP}{INT}{SEP}{INT}{SEP}{INT}{SEP}{INT}{SEP}{INT}{SEP}{FLOAT}"
+
+def evalb(gold_trees, predicted_trees, evalb_dir=None, ref_gold_path=None):
+    if evalb_dir is None:
+        evalb_dir = os.path.join(os.path.dirname(__file__), '../EVALB')
+
     assert os.path.exists(evalb_dir)
     evalb_program_path = os.path.join(evalb_dir, "evalb")
     evalb_spmrl_program_path = os.path.join(evalb_dir, "evalb_spmrl")
@@ -78,9 +116,16 @@ def evalb(evalb_dir, gold_trees, predicted_trees, ref_gold_path=None):
     )
     subprocess.run(command, shell=True)
 
-    fscore = FScore(math.nan, math.nan, math.nan, math.nan)
+    fscore = FScore(
+        math.nan, math.nan, math.nan, math.nan,
+        sentence_scores=[None for _ in range(max(len(gold_trees), len(predicted_trees)))]
+        )
     with open(output_path) as infile:
         for line in infile:
+            match = re.match(EVALB_PATTERN, line.strip())
+            if match:
+                sent_id, *stats = match.groups()
+                fscore.sentence_scores[int(sent_id) - 1] = SentenceScore(*stats)
             match = re.match(r"Bracketing Recall\s+=\s+(\d+\.\d+)", line)
             if match:
                 fscore.recall = float(match.group(1))
