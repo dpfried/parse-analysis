@@ -2,8 +2,8 @@
 
 import nltk
 from nltk.corpus import BracketParseCorpusReader, LazyCorpusLoader
-import sys
 import itertools
+import sys
 sys.path.append("../ctb_5.1/")
 import process_ctb
 

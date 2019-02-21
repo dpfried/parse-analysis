@@ -7,12 +7,18 @@ import bllipparser
 
 tagger_jar = "/home/dfried/lib/stanford-postagger-full-2017-06-09/stanford-postagger.jar"
 
-def replace_tags(tree_string, replacement_tag_seq):
+def replace_tags_and_words(tree_string, replacement_tag_seq, replacement_word_seq=None):
     tree = bllipparser.Tree("(S1 " + tree_string + ")")
+
+    if replacement_word_seq:
+        assert len(replacement_word_seq) == len(replacement_tag_seq)
+
     position = 0
     for node in tree.all_subtrees():
         if node.is_preterminal():
             node.label = replacement_tag_seq[position]
+            if replacement_word_seq is not None:
+                node.token = replacement_word_seq[position]
             position += 1
     assert position == len(replacement_tag_seq)
     tree_str = str(tree)
@@ -172,7 +178,7 @@ def run_partition(props_file, train_file, test_files, model_file, train_log_file
             pred_words, pred_tags = zip(*pred_tagged)
             gold_words, gold_tags = zip(*gold_tagged)
             assert pred_words == gold_words
-            pred_tree = replace_tags(gold_tree, pred_tags)
+            pred_tree = replace_tags_and_words(gold_tree, pred_tags, gold_words)
             pred_trees.append(pred_tree)
 
         with open(predicted_tree_file, 'w') as f:

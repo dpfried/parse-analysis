@@ -17,7 +17,7 @@ NORMALIZE_UNICODE=${SCRIPT_DIR}/normalize_unicode.py
 ENSURE_TOP=${SCRIPT_DIR}/ensure_top.py
 STRIP_FUNCTIONAL=${SCRIPT_DIR}/strip_functional.py
 
-# python get_ctb_9.py
+python get_ctb_9.py
 
 for SPLIT in train dev test
 do
@@ -37,3 +37,5 @@ do
     | python $ENSURE_TOP \
     > ${SPLIT}.gold.stripped
 done
+
+python pred_tags_ctb_9.py --splits dev test newswire broadcast_news broadcast_conversations weblogs discussion_forums chat_messages conversational_speech
