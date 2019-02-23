@@ -74,7 +74,7 @@ def train_tagger(props_file, training_file, output_model_file, training_log_outp
         "-model", output_model_file,
         "-trainFile", "format=TREES,%s" % training_file
     ]
-    print(' '.join(command))
+    #print(' '.join(command))
     if training_log_output:
         with open(training_log_output, 'w') as f:
             subprocess.call(command, stdout=f, stderr=subprocess.STDOUT)
@@ -185,7 +185,7 @@ def run_partition(props_file, train_file, test_files, model_file, train_log_file
             for tree in pred_trees:
                 f.write(tree + "\n")
 
-def jackknife(props_file, train_gold_fname, output_train_pred_fname, num_splits=10, train_models=False):
+def jackknife(props_file, train_gold_fname, output_train_pred_fname, num_splits=10, train_models=False, working_dir="."):
     with open(train_gold_fname) as f:
         gold_trees = list(f)
 
@@ -196,7 +196,7 @@ def jackknife(props_file, train_gold_fname, output_train_pred_fname, num_splits=
     all_pred_trees = []
 
     for split_index in range(num_splits):
-        split_dir = "split_%d" % split_index
+        split_dir = os.path.join(working_dir, "split_%d" % split_index)
         try:
             os.mkdir(split_dir)
         except:
@@ -228,27 +228,46 @@ def jackknife(props_file, train_gold_fname, output_train_pred_fname, num_splits=
             f.write(pred_tree + "\n")
 
 if __name__ == "__main__":
-    num_splits = 10
-    train_models=False
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--train_models", action='store_true')
+    parser.add_argument("--props_file", required=True)
+    parser.add_argument("--working_dir", default='.')
 
-    train_gold_file = '../train.gold.stripped'
-    dev_gold_file = '../dev.gold.stripped'
-    test_gold_file = '../test.gold.stripped'
+    parser.add_argument("--jackknife", action='store_true')
+    parser.add_argument("--jackknife_num_splits", type=int, default=10)
 
-    train_pred_file = '../train.pred.stripped'
-    dev_pred_file = '../dev.pred.stripped'
-    test_pred_file = '../test.pred.stripped'
+    parser.add_argument("--train_gold_file")
+    parser.add_argument("--train_pred_file")
 
-    props_file="train-chinese-nodistsim.tagger.props"
+    parser.add_argument("--held_out_names", nargs='*')
+    parser.add_argument("--held_out_gold_files", nargs='*')
+    parser.add_argument("--held_out_pred_files", nargs='*')
 
-    jackknife(props_file, train_gold_file, train_pred_file, num_splits)
-    run_partition(props_file, 
-                  train_gold_file,
-                  [dev_gold_file, test_gold_file],
-                  'model_full.bin',
-                  'train_log_full.txt',
-                  ['dev.pred.tags', 'test.pred.tags'],
-                  [dev_pred_file, test_pred_file],
-                  ['tag_dev.log', 'tag_test.log'],
-                  ['dev', 'test'],
-                  train_models=train_models)
+    args = parser.parse_args()
+
+    if args.train_models:
+        assert args.train_gold_file
+
+    if args.jackknife:
+        assert args.train_pred_file
+        jackknife(args.props_file, args.train_gold_file, args.train_pred_file, args.jackknife_num_splits, train_models=args.train_models, working_dir=args.working_dir)
+
+    if args.held_out_gold_files:
+        assert args.held_out_pred_files and len(args.held_out_pred_files) == len(args.held_out_gold_files) and args.held_out_names and len(args.held_out_names) == len(args.held_out_gold_files)
+
+        tag_files = [os.path.join(args.working_dir, '{}.pred.tags'.format(name))
+                     for name in args.held_out_names]
+        log_files = [os.path.join(args.working_dir, '{}.pred.log'.format(name))
+                     for name in args.held_out_names]
+
+        run_partition(args.props_file, 
+                      args.train_gold_file,
+                      args.held_out_gold_files,
+                      os.path.join(args.working_dir, 'model_full.bin'),
+                      os.path.join(args.working_dir, 'train_log_full.txt'),
+                      tag_files,
+                      args.held_out_pred_files,
+                      log_files,
+                      args.held_out_names,
+                      train_models=args.train_models)
