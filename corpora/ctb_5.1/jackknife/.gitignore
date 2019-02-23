@@ -1,0 +1,5 @@
+*.log
+*.tags
+split_*/
+model_full.bin
+model_full.bin.props
