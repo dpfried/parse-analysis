@@ -80,11 +80,9 @@ class PhraseTree(object):
         """
         line += " "
         sentence = []
-        _, t = PhraseTree._parse(line, 0, sentence)
+        ix, t = PhraseTree._parse(line, 0, sentence)
+        assert not line[ix:].strip(), "suffix remaining: {}".format(line[ix:].strip())
 
-        if t.symbol == 'TOP' and len(t.children) == 1:
-            t = t.children[0]
-        
         return t
 
 
@@ -145,9 +143,6 @@ if __name__ == "__main__":
 
     for line in fileinput.input(files=args.files if len(args.files) > 0 else ('-', )):
         line = line.strip()
-        if line.startswith("( "):
-            assert line[-1] == ')'
-            line = line[2:-1]
         # line = re.sub('\)', ') ', line)
 
         # #line = re.sub(r'-[^\s^\)]* |##[^\s^\)]*## ', ' ', line)
