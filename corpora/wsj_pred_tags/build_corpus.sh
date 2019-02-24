@@ -19,8 +19,8 @@ python $STRIP_FUNCTIONAL < $DEV | python $ENSURE_TOP > dev.gold.stripped
 python $STRIP_FUNCTIONAL < $TEST | python $ENSURE_TOP > test.gold.stripped
 
 python $PREDICT_TAGS \
-  --props_file ${TAGGER_DIR}/wsj-0-18-left3words-nodistsim.tagger.props \
-  --model_file ${TAGGER_DIR}/retrain-wsj-2-21-left3words-nodistsim.tagger \
+  --props_file ${TAGGER_DIR}/wsj-0-18-bidirectional-nodistsim.tagger.props \
+  --model_file ${TAGGER_DIR}/retrain-wsj-2-21-bidirectional-nodistsim.tagger \
   --working_dir tag_predictions \
   --train_gold_file train.gold.stripped \
   --held_out_names dev test \

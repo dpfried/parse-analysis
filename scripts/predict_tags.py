@@ -85,7 +85,7 @@ def run_tagger(test_file, model_file, output_file, stderr_file=None):
     command = [
         "java",
         "-cp", tagger_jar,
-        "-Xmx400M",
+        "-Xmx600M",
         "edu.stanford.nlp.tagger.maxent.MaxentTagger",
         "-model", model_file,
         "-textFile", "format=TREES,%s" % test_file,

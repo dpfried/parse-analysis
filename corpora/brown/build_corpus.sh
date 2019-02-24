@@ -33,8 +33,8 @@ done
 mkdir tag_predictions
 
 python $PREDICT_TAGS \
-  --props_file ${TAGGER_DIR}/wsj-0-18-left3words-nodistsim.tagger.props \
-  --model_file ${TAGGER_DIR}/wsj-0-18-left3words-nodistsim.tagger  \
+  --props_file ${TAGGER_DIR}/retrain-wsj-2-21-bidirectional-nodistsim.tagger.props \
+  --model_file ${TAGGER_DIR}/retrain-wsj-2-21-bidirectional-nodistsim.tagger  \
   --working_dir tag_predictions \
   --held_out_names ${SECTIONS[@]} \
   --held_out_gold_files ${GOLD_FILES[@]} \

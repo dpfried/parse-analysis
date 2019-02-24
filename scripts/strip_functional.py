@@ -147,7 +147,10 @@ class PhraseTree(object):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--remove_symbols', nargs='*')
+    parser.add_argument('--remove_symbols', nargs='*', help="remove these NT symbols from anywhere in the tree")
+    parser.add_argument("--remove_root", help="remove this symbol from the root of the tree, if it's there")
+    parser.add_argument("--remove_root_must_have", help="remove this symbol from the root of the tree, and throw an error if it's not present")
+    parser.add_argument('--root_removed_replacement')
     parser.add_argument('--dedup_punct_symbols', nargs='*')
     parser.add_argument('files', metavar='FILE', nargs='*', help='files to read, if empty, stdin is used')
     args = parser.parse_args()
@@ -186,10 +189,35 @@ if __name__ == "__main__":
         # linearized = re.sub('\) ', ')', linearized)
         # print(linearized)
         tree = PhraseTree.parse(line)
+        if args.remove_root is not None or args.remove_root_must_have is not None:
+            assert not (args.remove_root is not None and args.remove_root_must_have is not None)
+            if args.remove_root_must_have is not None:
+                assert tree.symbol == args.remove_root_must_have
+            symbol_to_remove = args.remove_root_must_have if args.remove_root_must_have is not None else args.remove_root
+            if tree.symbol == symbol_to_remove:
+                trees = tree.children
+            else:
+                trees = [tree]
+        else:
+            trees = [tree]
+
         if args.remove_symbols:
-            trees = tree.remove_nodes(set(args.remove_symbols))
-            assert len(trees) == 1, "can't remove a root symbol!"
+            trees = [
+                t for tree in trees
+                for t in tree.remove_nodes(set(args.remove_symbols))
+            ]
+
+        if len(trees) == 1:
             tree = trees[0]
+        else:
+            if args.root_removed_replacement:
+                assert all(t.sentence == trees[0].sentence for t in trees[1:])
+                tree = PhraseTree(symbol=args.root_removed_replacement, 
+                                    children=trees, 
+                                    sentence=trees[0].sentence,
+                                    leaf=None)
+            else:
+                assert len(trees) == 1, "can't remove a root symbol with multiple children without passing --root_removed_replacement!"
 
         if dedup_punct_symbols:
             for ix in range(len(tree.sentence)):
