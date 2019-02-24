@@ -1,6 +1,6 @@
 import sys
-sys.path.append("../ctb_5.1/jackknife")
-import jackknife
+sys.path.append("../../scripts/")
+import predict_tags
 import os
 import argparse
 
@@ -23,13 +23,20 @@ tag_files = [os.path.join(working_dir, "{}.pred.tags".format(split)) for split i
 output_files = ["{}.pred.stripped".format(split) for split in args.splits]
 log_files = [os.path.join(working_dir, "{}.log".format(split)) for split in args.splits]
 
-jackknife.run_partition(args.props_file, 
-                        None, # train_file
-                        input_files,
-                        args.model_file,
-                        None, # train_log_file
-                        tag_files,
-                        output_files, 
-                        log_files,
-                        args.splits,
-                        train_models=False)
+tag_replacement = {
+    'NP': 'NN',
+    'VP': 'VV',
+    'X': 'FW',
+}
+
+predict_tags.run_partition(args.props_file, 
+                           None, # train_file
+                           input_files,
+                           args.model_file,
+                           None, # train_log_file
+                           tag_files,
+                           output_files, 
+                           log_files,
+                           args.splits,
+                           train_models=False,
+                           tag_replacement=tag_replacement)

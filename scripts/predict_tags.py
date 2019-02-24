@@ -68,7 +68,7 @@ def train_tagger(props_file, training_file, output_model_file, training_log_outp
     command = [
         "java",
         "-cp", tagger_jar,
-        "-Xmx1G",
+        "-Xmx2G",
         "edu.stanford.nlp.tagger.maxent.MaxentTagger",
         "-props", props_file,
         "-model", output_model_file,
@@ -85,7 +85,7 @@ def run_tagger(test_file, model_file, output_file, stderr_file=None):
     command = [
         "java",
         "-cp", tagger_jar,
-        "-Xmx200M",
+        "-Xmx400M",
         "edu.stanford.nlp.tagger.maxent.MaxentTagger",
         "-model", model_file,
         "-textFile", "format=TREES,%s" % test_file,
@@ -130,6 +130,9 @@ def tree_string_to_tagged(tree_string):
     assert len(tags) == len(toks) == len(lc)
     return list(zip(toks, tags))
 
+def normalize_words(words):
+    return tuple(w.replace("\\", "") for w in words)
+
 def accuracy(predicted_tagged, gold_tagged):
     assert len(predicted_tagged) == len(gold_tagged)
     count = 0
@@ -137,21 +140,15 @@ def accuracy(predicted_tagged, gold_tagged):
     for pred, gold in zip(predicted_tagged, gold_tagged):
         pred_w, pred_t = zip(*pred)
         gold_w, gold_t = zip(*gold)
-        assert pred_w == gold_w
+        assert normalize_words(pred_w) == normalize_words(gold_w), "predicted words != gold words: {}, {}".format(normalize_words(pred_w), normalize_words(gold_w))
         for p, g in zip(pred_t, gold_t):
             count += 1
             if p == g:
                 correct += 1
     return correct, count
 
-def run_partition(props_file, train_file, test_files, model_file, train_log_file, predicted_tags_files, predicted_tree_files, tag_log_files=None, names=None, train_models=False):
+def run_partition(props_file, train_file, test_files, model_file, train_log_file, predicted_tags_files, predicted_tree_files, tag_log_files=None, names=None, train_models=False, tag_replacement=None):
     if train_models:
-        with open(train_file, 'w') as f:
-            for line in itertools.chain(*train_splits):
-                f.write(line)
-        with open(test_file, 'w') as f:
-            for line in test_split:
-                f.write(line)
         train_tagger(props_file, train_file, model_file, train_log_file)
 
     assert len(test_files) == len(predicted_tags_files) == len(predicted_tree_files)
@@ -177,7 +174,12 @@ def run_partition(props_file, train_file, test_files, model_file, train_log_file
         for gold_tree, gold_tagged, pred_tagged in zip(all_gold_trees, all_gold_tagged, all_predicted_tagged):
             pred_words, pred_tags = zip(*pred_tagged)
             gold_words, gold_tags = zip(*gold_tagged)
-            assert pred_words == gold_words
+            assert normalize_words(pred_words) == normalize_words(gold_words), "predicted words != gold words: {}, {}".format(normalize_words(pred_words), normalize_words(gold_words))
+            pred_tags = list(pred_tags)
+            if tag_replacement:
+                for i in range(len(pred_tags)):
+                    if pred_tags[i] in tag_replacement:
+                        pred_tags[i] = tag_replacement[pred_tags[i]]
             pred_tree = replace_tags_and_words(gold_tree, pred_tags, gold_words)
             pred_trees.append(pred_tree)
 
@@ -216,6 +218,12 @@ def jackknife(props_file, train_gold_fname, output_train_pred_fname, num_splits=
         predicted_tags_file = os.path.join(split_dir, "test_%d.pred.tags" % split_index)
         predicted_tree_file = os.path.join(split_dir, "test_%d.pred.stripped" % split_index)
 
+        with open(train_file, 'w') as f:
+            for line in itertools.chain(*train_splits):
+                f.write(line)
+        with open(test_file, 'w') as f:
+            for line in test_split:
+                f.write(line)
         run_partition(props_file, train_file, [test_file], model_file, train_log_file, [predicted_tags_file], [predicted_tree_file], [tag_log_file], [split_dir], train_models=train_models)
 
         pred_trees = read(predicted_tree_file)
@@ -233,6 +241,7 @@ if __name__ == "__main__":
     parser.add_argument("--train_models", action='store_true')
     parser.add_argument("--props_file", required=True)
     parser.add_argument("--working_dir", default='.')
+    parser.add_argument("--model_file")
 
     parser.add_argument("--jackknife", action='store_true')
     parser.add_argument("--jackknife_num_splits", type=int, default=10)
@@ -249,10 +258,6 @@ if __name__ == "__main__":
     if args.train_models:
         assert args.train_gold_file
 
-    if args.jackknife:
-        assert args.train_pred_file
-        jackknife(args.props_file, args.train_gold_file, args.train_pred_file, args.jackknife_num_splits, train_models=args.train_models, working_dir=args.working_dir)
-
     if args.held_out_gold_files:
         assert args.held_out_pred_files and len(args.held_out_pred_files) == len(args.held_out_gold_files) and args.held_out_names and len(args.held_out_names) == len(args.held_out_gold_files)
 
@@ -261,13 +266,20 @@ if __name__ == "__main__":
         log_files = [os.path.join(args.working_dir, '{}.pred.log'.format(name))
                      for name in args.held_out_names]
 
+        model_file = args.model_file or os.path.join(args.working_dir, 'model_full.bin')
+
         run_partition(args.props_file, 
                       args.train_gold_file,
                       args.held_out_gold_files,
-                      os.path.join(args.working_dir, 'model_full.bin'),
+                      model_file,
                       os.path.join(args.working_dir, 'train_log_full.txt'),
                       tag_files,
                       args.held_out_pred_files,
                       log_files,
                       args.held_out_names,
                       train_models=args.train_models)
+
+    if args.jackknife:
+        assert args.train_pred_file
+        jackknife(args.props_file, args.train_gold_file, args.train_pred_file, args.jackknife_num_splits, train_models=args.train_models, working_dir=args.working_dir)
+

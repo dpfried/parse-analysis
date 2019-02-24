@@ -33,7 +33,7 @@ do
   python $FILTER_BAD < ${SPLIT}.gold.original \
     | python $REMOVE_TRACES \
     | python $NORMALIZE_CHINESE \
-    | python $STRIP_FUNCTIONAL \
+    | python $STRIP_FUNCTIONAL --dedup_punct_symbols PU \
     | python $ENSURE_TOP \
     > ${SPLIT}.gold.stripped
 done

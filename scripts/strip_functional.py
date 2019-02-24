@@ -43,6 +43,16 @@ class PhraseTree(object):
         else:
             return [PhraseTree(self.symbol, children, self.sentence, leaf=self.leaf)]
 
+    def remove_tag_tokens(self, tok_tag_pred):
+        # this doesn't remove tokens from sentence; just drops them from the tree. but so long as sentence is refered to by indices stored in PhraseTree.leaf, should be ok
+        children = []
+        for child in self.children:
+            if child.leaf is not None and tok_tag_pred(self.sentence[child.leaf]):
+                continue
+            else:
+                children.append(child.remove_tag_tokens(tok_tag_pred))
+        return PhraseTree(self.symbol, children, self.sentence, leaf=self.leaf)
+
     def __str__(self):
         if self._str is None:
             if len(self.children) != 0:
@@ -138,8 +148,11 @@ class PhraseTree(object):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--remove_symbols', nargs='*')
+    parser.add_argument('--dedup_punct_symbols', nargs='*')
     parser.add_argument('files', metavar='FILE', nargs='*', help='files to read, if empty, stdin is used')
     args = parser.parse_args()
+
+    dedup_punct_symbols = set(args.dedup_punct_symbols) if args.dedup_punct_symbols else set()
 
     for line in fileinput.input(files=args.files if len(args.files) > 0 else ('-', )):
         line = line.strip()
@@ -177,4 +190,12 @@ if __name__ == "__main__":
             trees = tree.remove_nodes(set(args.remove_symbols))
             assert len(trees) == 1, "can't remove a root symbol!"
             tree = trees[0]
+
+        if dedup_punct_symbols:
+            for ix in range(len(tree.sentence)):
+                tok, tag = tree.sentence[ix]
+                if tag in dedup_punct_symbols:
+                    if all(x == tok[0] for x in tok[1:]):
+                        tok = tok[0]
+                        tree.sentence[ix] = tok, tag
         print(tree)

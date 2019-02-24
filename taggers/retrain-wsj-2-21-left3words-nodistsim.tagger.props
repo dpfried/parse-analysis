@@ -1,0 +1,35 @@
+## tagger training invoked at Sat Feb 23 19:52:31 PST 2019 with arguments:
+                   model = ../../taggers/retrain-wsj-2-21-left3words-nodistsim.tagger
+                    arch = left3words,naacl2003unknowns,wordshapes(-1,1)
+            wordFunction = 
+               trainFile = format=TREES,train.gold.stripped
+         closedClassTags = 
+ closedClassTagThreshold = 40
+ curWordMinFeatureThresh = 2
+                   debug = false
+             debugPrefix = 
+            tagSeparator = _
+                encoding = UTF-8
+              iterations = 100
+                    lang = english
+    learnClosedClassTags = false
+        minFeatureThresh = 2
+           openClassTags = 
+rareWordMinFeatureThresh = 10
+          rareWordThresh = 5
+                  search = qn
+                    sgml = false
+            sigmaSquared = 0.0
+                   regL1 = 0.75
+               tagInside = 
+                tokenize = true
+        tokenizerFactory = 
+        tokenizerOptions = 
+                 verbose = false
+          verboseResults = true
+    veryCommonWordThresh = 250
+                xmlInput = 
+              outputFile = 
+            outputFormat = slashTags
+     outputFormatOptions = 
+                nthreads = 1

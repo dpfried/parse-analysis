@@ -46,3 +46,15 @@ process_ctb.combine_fids(ctb_9, nltk_out_root, files_from_boundaries(development
 process_ctb.combine_fids(ctb_9, nltk_out_root, files_from_boundaries(test), 'test.gold.original', suffix_glob='*', pad_hundreds=True)
 for split, boundaries in other_splits.items():
     process_ctb.combine_fids(ctb_9, nltk_out_root, files_from_boundaries(boundaries), '{}.gold.original'.format(split), suffix_glob='*', pad_hundreds=True)
+
+# all_other_boundaries = []
+# for boundaries in other_splits.values():
+#     all_other_boundaries += boundaries
+# process_ctb.combine_fids(ctb_9, nltk_out_root, files_from_boundaries(all_other_boundaries), 'others.gold.original', suffix_glob='*', pad_hundreds=True)
+
+# ctb_8_other_boundaries = []
+# for name, boundaries in other_splits.items():
+#     if name == 'chat_messages' or name == 'conversational_speech':
+#         continue
+#     ctb_8_other_boundaries += boundaries
+# process_ctb.combine_fids(ctb_9, nltk_out_root, files_from_boundaries(ctb_8_other_boundaries), 'others-ctb8.gold.original', suffix_glob='*', pad_hundreds=True)
