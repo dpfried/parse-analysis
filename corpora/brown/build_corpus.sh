@@ -14,16 +14,24 @@ PREDICT_TAGS=${SCRIPT_DIR}/predict_tags.py
 
 python $STRIP_ROOT --symbol '' < $RAW | python $ENSURE_TOP | python $STRIP_FUNCTIONAL >$STRIPPED
 
-python partition_brown.py --split 'train' <$STRIPPED >train.gold.stripped
-python partition_brown.py --split 'test' <$STRIPPED >test.gold.stripped
-python partition_brown.py --split 'test40' <$STRIPPED >test40.gold.stripped
 
-SECTIONS=(cf cg ck cl cm cn cp cr)
+SECTIONS=()
 GOLD_FILES=()
 PRED_FILES=()
 
-for SECTION in ${SECTIONS[@]}
+for SECTION in train test test40
 do
+  SECTIONS+=($SECTION)
+  GOLD_FILES+=(${SECTION}.gold.stripped)
+  PRED_FILES+=(${SECTION}.pred.stripped)
+
+  python partition_brown.py --split $SECTION <$STRIPPED >${SECTION}.gold.stripped
+done
+
+
+for SECTION in cf cg ck cl cm cn cp cr
+do
+  SECTIONS+=($SECTION)
   GOLD_FILES+=(${SECTION}.gold.stripped)
   PRED_FILES+=(${SECTION}.pred.stripped)
 
