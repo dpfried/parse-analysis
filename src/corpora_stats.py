@@ -5,6 +5,8 @@ import evaluate
 import trees
 import load_corpora
 
+import pandas
+
 # %%
 
 CORPORA = load_corpora.get_corpora()
@@ -154,7 +156,13 @@ counts_rescale = CorporaCounts(CORPORA, length_rescale_for=CORPORA['wsj_train'])
 
 # %%
 
+
+
 for counts in [counts_norescale, counts_rescale]:
+    by_corpus = {}
+    for k in CORPORA:
+        by_corpus[k] = {'name': k}
+
     if counts == counts_norescale:
         print('[no rescale]')
     else:
@@ -163,6 +171,7 @@ for counts in [counts_norescale, counts_rescale]:
     print('# Word vocabularies')
     for k in CORPORA:
         val = histogram_intersection(counts.vocabs['wsj_train'], counts.vocabs[k])
+        by_corpus[k]['word_vocab'] = val
         print(f'{CORPORA_DESCRIPTIONS[k]: <20} {val:.2f}')
 
     print()
@@ -170,6 +179,7 @@ for counts in [counts_norescale, counts_rescale]:
     print('# Productions')
     for k in CORPORA:
         val = histogram_intersection(counts.productions['wsj_train'], counts.productions[k])
+        by_corpus[k]['productions'] = val
         print(f'{CORPORA_DESCRIPTIONS[k]: <20} {val:.2f}')
 
     print()
@@ -177,6 +187,7 @@ for counts in [counts_norescale, counts_rescale]:
     print('# Multi-word productions')
     for k in CORPORA:
         val = histogram_intersection(counts.multiword_productions['wsj_train'], counts.multiword_productions[k])
+        by_corpus[k]['multi_word_productions'] = val
         print(f'{CORPORA_DESCRIPTIONS[k]: <20} {val:.2f}')
 
     print()
@@ -184,6 +195,7 @@ for counts in [counts_norescale, counts_rescale]:
     print('# Multi-word span labels')
     for k in CORPORA:
         val = histogram_intersection(counts.multiword_labels['wsj_train'], counts.multiword_labels[k])
+        by_corpus[k]['multi_word_span_labels'] = val
         print(f'{CORPORA_DESCRIPTIONS[k]: <20} {val:.2f}')
 
     print()
@@ -191,6 +203,7 @@ for counts in [counts_norescale, counts_rescale]:
     print('# Average length')
     for k in CORPORA:
         val = sum([kk * vv for kk, vv in counts.lengths[k].items()]) / sum(counts.lengths[k].values())
+        by_corpus[k]['length'] = val
         print(f'{CORPORA_DESCRIPTIONS[k]: <20} {val:.2f}')
 
     print()
@@ -198,7 +211,15 @@ for counts in [counts_norescale, counts_rescale]:
     print('# Length histogram intersection')
     for k in CORPORA:
         val = histogram_intersection(counts.lengths['wsj_train'], counts.lengths[k])
+        by_corpus[k]['length_hist_intersection'] = val
         print(f'{CORPORA_DESCRIPTIONS[k]: <20} {val:.2f}')
 
     print()
     print()
+
+    frame = pandas.DataFrame(by_corpus.values())
+
+    if counts == counts_rescale:
+        counts_intersection_rescale = frame
+    else:
+        counts_intersection_norescale = frame
