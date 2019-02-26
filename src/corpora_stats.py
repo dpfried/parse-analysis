@@ -87,6 +87,7 @@ class CorporaCounts(object):
     @property
     @functools.lru_cache()
     def _structural_counters(self):
+        #TODO update this for CTB
         PUNCT = set(".,:#$") | set(["-LRB-", "-RRB-", "-LCB-", "-RCB-", "-LSB-", "-RSB-", "``", "''"])
 
         def accumulate(tree, weight, counters, index=0):

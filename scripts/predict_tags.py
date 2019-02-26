@@ -85,7 +85,7 @@ def run_tagger(test_file, model_file, output_file, stderr_file=None):
     command = [
         "java",
         "-cp", tagger_jar,
-        "-Xmx600M",
+        "-Xmx2G",
         "edu.stanford.nlp.tagger.maxent.MaxentTagger",
         "-model", model_file,
         "-textFile", "format=TREES,%s" % test_file,
@@ -159,13 +159,22 @@ def run_partition(props_file, train_file, test_files, model_file, train_log_file
     for name, test_file, predicted_tree_file, predicted_tags_file, tag_log_file in zip(names, test_files, predicted_tree_files, predicted_tags_files, tag_log_files):
         run_tagger(test_file, model_file, predicted_tags_file, stderr_file=tag_log_file)
 
-        all_predicted_tagged = read_tagged(predicted_tags_file)
-        all_gold_trees = read(test_file)
-        all_gold_tagged = [
-            tree_string_to_tagged(tree) for tree in all_gold_trees
-        ]
+        try:
 
-        correct, total = accuracy(all_predicted_tagged, all_gold_tagged)
+            all_predicted_tagged = read_tagged(predicted_tags_file)
+            all_gold_trees = read(test_file)
+            all_gold_tagged = [
+                tree_string_to_tagged(tree) for tree in all_gold_trees
+            ]
+
+            correct, total = accuracy(all_predicted_tagged, all_gold_tagged)
+        except Exception as e:
+            print("ERROR: {}".format(e))
+            print("tagging file {} contents".format(tag_log_file))
+            with open(tag_log_file) as f:
+                print(f.read())
+            raise e
+
         if name:
             print("accuracy for %s:\t %d / %d (%0.2f%%)" % (name, correct, total, 100.0 * correct / total))
 

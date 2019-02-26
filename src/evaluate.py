@@ -1,10 +1,13 @@
 import math
+import shutil
 import os.path
 import re
 import subprocess
 import tempfile
 
 import trees
+
+import collections
 
 class SentenceScore(object):
     def __init__(self,
@@ -52,29 +55,14 @@ class FScore(object):
             return "(Recall={:.2f}, Precision={:.2f}, FScore={:.2f}, CompleteMatch={:.2f})".format(
                 self.recall, self.precision, self.fscore, self.complete_match)
 
+InvalidCounts = collections.namedtuple("InvalidCounts", ["error_sentence_count", "skip_sentence_count"])
+
 INT = "(\d+)"
 FLOAT = "(\d+\.\d+)"
 SEP = "\s+"
 EVALB_PATTERN = f"\s*{INT}{SEP}{INT}{SEP}{INT}{SEP}{FLOAT}{SEP}{FLOAT}{SEP}{INT}{SEP}{INT}{SEP}{INT}{SEP}{INT}{SEP}{INT}{SEP}{INT}{SEP}{FLOAT}"
 
-def evalb(gold_trees, predicted_trees, evalb_dir=None, ref_gold_path=None):
-    if evalb_dir is None:
-        evalb_dir = os.path.join(os.path.dirname(__file__), '../EVALB')
-
-    assert os.path.exists(evalb_dir)
-    evalb_program_path = os.path.join(evalb_dir, "evalb")
-    evalb_spmrl_program_path = os.path.join(evalb_dir, "evalb_spmrl")
-    assert os.path.exists(evalb_program_path) or os.path.exists(evalb_spmrl_program_path)
-
-    if os.path.exists(evalb_program_path):
-        evalb_param_path = os.path.join(evalb_dir, "COLLINS.prm")
-    else:
-        evalb_program_path = evalb_spmrl_program_path
-        evalb_param_path = os.path.join(evalb_dir, "spmrl.prm")
-
-    assert os.path.exists(evalb_program_path)
-    assert os.path.exists(evalb_param_path)
-
+def evalb_from_trees(gold_trees, predicted_trees, evalb_dir=None, ref_gold_path=None, abort_on_error_or_skip=False):
     assert len(gold_trees) == len(predicted_trees)
     for gold_tree, predicted_tree in zip(gold_trees, predicted_trees):
         assert isinstance(gold_tree, trees.TreebankNode)
@@ -86,10 +74,10 @@ def evalb(gold_trees, predicted_trees, evalb_dir=None, ref_gold_path=None):
             gold_leaf.word == predicted_leaf.word
             for gold_leaf, predicted_leaf in zip(gold_leaves, predicted_leaves))
 
-    temp_dir = tempfile.TemporaryDirectory(prefix="evalb-")
-    gold_path = os.path.join(temp_dir.name, "gold.txt")
-    predicted_path = os.path.join(temp_dir.name, "predicted.txt")
-    output_path = os.path.join(temp_dir.name, "output.txt")
+    temp_dir = tempfile.mkdtemp(prefix="evalb-")
+    gold_path = os.path.join(temp_dir, "gold.txt")
+    predicted_path = os.path.join(temp_dir, "predicted.txt")
+    output_path = os.path.join(temp_dir, "output.txt")
 
     with open(gold_path, "w") as outfile:
         if ref_gold_path is None:
@@ -107,6 +95,43 @@ def evalb(gold_trees, predicted_trees, evalb_dir=None, ref_gold_path=None):
         for tree in predicted_trees:
             outfile.write("{}\n".format(tree.linearize()))
 
+    tree_count = max(len(gold_trees), len(predicted_trees))
+
+    fscore, invalid_counts, read_and_valid = evalb_from_files(
+        predicted_path, gold_path, output_path,
+        evalb_dir=evalb_dir, abort_on_error_or_skip=abort_on_error_or_skip, tree_count=tree_count
+    )
+
+    if read_and_valid:
+        shutil.rmtree(temp_dir)
+    return fscore
+
+
+def evalb_from_files(predicted_path, gold_path, output_path=None, evalb_dir=None, abort_on_error_or_skip=False, tree_count=None):
+    if evalb_dir is None:
+        evalb_dir = os.path.join(os.path.dirname(__file__), '../EVALB')
+
+    if output_path is None:
+        temp_dir = tempfile.mkdtemp(prefix="evalb-")
+        output_path = os.path.join(temp_dir, "output.txt")
+    else:
+        temp_dir = None
+
+    assert os.path.exists(evalb_dir)
+    evalb_program_path = os.path.join(evalb_dir, "evalb")
+    evalb_spmrl_program_path = os.path.join(evalb_dir, "evalb_spmrl")
+    assert os.path.exists(evalb_program_path) or os.path.exists(evalb_spmrl_program_path)
+
+    if os.path.exists(evalb_program_path):
+        evalb_param_path = os.path.join(evalb_dir, "COLLINS_ch.prm")
+    else:
+        evalb_program_path = evalb_spmrl_program_path
+        evalb_param_path = os.path.join(evalb_dir, "spmrl.prm")
+
+    assert os.path.exists(evalb_program_path)
+    assert os.path.exists(evalb_param_path)
+
+
     command = "{} -p {} {} {} > {}".format(
         evalb_program_path,
         evalb_param_path,
@@ -114,18 +139,38 @@ def evalb(gold_trees, predicted_trees, evalb_dir=None, ref_gold_path=None):
         predicted_path,
         output_path,
     )
-    subprocess.run(command, shell=True)
+    out = subprocess.run(command, shell=True, stderr=subprocess.PIPE)
+    stderr_dec = out.stderr.decode("utf-8")
+    if stderr_dec.strip():
+        print(stderr_dec.strip())
+
+    sentence_scores = [None for _ in range(tree_count)] if tree_count is not None else []
 
     fscore = FScore(
         math.nan, math.nan, math.nan, math.nan,
-        sentence_scores=[None for _ in range(max(len(gold_trees), len(predicted_trees)))]
+        sentence_scores=sentence_scores,
         )
+
+    invalid_counts = InvalidCounts(None, None)
     with open(output_path) as infile:
         for line in infile:
             match = re.match(EVALB_PATTERN, line.strip())
             if match:
                 sent_id, *stats = match.groups()
-                fscore.sentence_scores[int(sent_id) - 1] = SentenceScore(*stats)
+                if tree_count is None:
+                    fscore.sentence_scores.append(SentenceScore(*stats))
+                else:
+                    fscore.sentence_scores[int(sent_id) - 1] = SentenceScore(*stats)
+            match = re.match(r"Number of Error sentence\s+=\s+(\d+)", line)
+            if match:
+                invalid_counts = invalid_counts._replace(error_sentence_count=int(match.group(1)))
+            match = re.match(r"Number of Skip  sentence\s+=\s+(\d+)", line)
+            if match:
+                invalid_counts = invalid_counts._replace(skip_sentence_count=int(match.group(1)))
+            # match = re.match(r"Number of Valid sentence\s+=\s+(\d+)", line)
+            # if match:
+            #     valid_sentence = int(match.group(1))
+
             match = re.match(r"Bracketing Recall\s+=\s+(\d+\.\d+)", line)
             if match:
                 fscore.recall = float(match.group(1))
@@ -143,17 +188,34 @@ def evalb(gold_trees, predicted_trees, evalb_dir=None, ref_gold_path=None):
                 fscore.tagging_accuracy = float(match.group(1))
                 break
 
-    success = (
+    read_results = (
         not math.isnan(fscore.fscore) or
         fscore.recall == 0.0 or
         fscore.precision == 0.0)
 
-    if success:
-        temp_dir.cleanup()
-    else:
+    valid = True
+    if (invalid_counts.error_sentence_count is None or invalid_counts.error_sentence_count > 0):
+        print("{} Error sentences".format(invalid_counts.error_sentence_count))
+        valid = False
+        if abort_on_error_or_skip:
+            raise Exception("{} Error sentences".format(invalid_counts.error_sentence_count))
+
+    if (invalid_counts.skip_sentence_count is None or invalid_counts.skip_sentence_count > 0):
+        print("{} Skip sentences".format(invalid_counts.skip_sentence_count))
+        valid = False
+        if abort_on_error_or_skip:
+            raise Exception("{} Error sentences".format(invalid_counts.skip_sentence_count))
+
+    if not read_results:
         print("Error reading EVALB results.")
+
+    read_and_valid = (read_results and valid)
+    if not read_and_valid:
         print("Gold path: {}".format(gold_path))
         print("Predicted path: {}".format(predicted_path))
         print("Output path: {}".format(output_path))
 
-    return fscore
+    if temp_dir and read_and_valid:
+        shutil.rmtree(temp_dir)
+
+    return fscore, invalid_counts, read_and_valid
