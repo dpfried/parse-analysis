@@ -70,8 +70,12 @@ CORPORA_DESCRIPTIONS = {
     'ewt_weblog_test': 'EWT Weblog (test)',
 }
 
-SHIFT_REDUCE_NORM = {
+DECODE_NAME_NORM = {
 }
+
+DECODE_NAME_UNNORM = {
+}
+
 for corpus in CORPORA_FILES:
     replaced = corpus.replace("_", "-")
     if 'ewt' in replaced:
@@ -79,7 +83,9 @@ for corpus in CORPORA_FILES:
         replaced = replaced.replace("-test", ".test")
     if 'wsj' in replaced:
         replaced = replaced.replace("wsj", "wsj_pred_tags")
-    SHIFT_REDUCE_NORM[corpus] = replaced
+    DECODE_NAME_NORM[corpus] = replaced
+    assert replaced not in DECODE_NAME_UNNORM
+    DECODE_NAME_UNNORM[replaced] = corpus
 
 def get_corpora():
     global CORPORA
