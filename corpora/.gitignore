@@ -2,3 +2,4 @@
 *.stripped
 *.dictionary
 treebank_3
+tag_predictions/

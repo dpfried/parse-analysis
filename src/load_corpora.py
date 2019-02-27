@@ -24,17 +24,17 @@ CORPORA_FILES = {
     # 'wsj_test': 'wsj_ch/test.stripped',
     'wsj_train': 'wsj_pred_tags/train.gold.stripped',
     'wsj_dev': 'wsj_pred_tags/dev.gold.stripped',
-    # 'wsj_test': 'wsj_pred_tags/test.gold.stripped',
+    'wsj_test': 'wsj_pred_tags/test.gold.stripped',
     'ewt_answers_dev': 'ewt/answers.dev.gold.stripped',
-    # 'ewt_answers_test': 'ewt/answers.test.gold.stripped',
+    'ewt_answers_test': 'ewt/answers.test.gold.stripped',
     'ewt_email_dev': 'ewt/email.dev.gold.stripped',
-    # 'ewt_email_test': 'ewt/email.test.gold.stripped',
+    'ewt_email_test': 'ewt/email.test.gold.stripped',
     'ewt_newsgroup_dev': 'ewt/newsgroup.dev.gold.stripped',
-    # 'ewt_newsgroup_test': 'ewt/newsgroup.test.gold.stripped',
+    'ewt_newsgroup_test': 'ewt/newsgroup.test.gold.stripped',
     'ewt_reviews_dev': 'ewt/reviews.dev.gold.stripped',
-    # 'ewt_reviews_test': 'ewt/reviews.test.gold.stripped',
+    'ewt_reviews_test': 'ewt/reviews.test.gold.stripped',
     'ewt_weblog_dev': 'ewt/weblog.dev.gold.stripped',
-    # 'ewt_weblog_test': 'ewt/weblog.test.gold.stripped',
+    'ewt_weblog_test': 'ewt/weblog.test.gold.stripped',
 }
 CORPORA_FILES = {k: os.path.join(BASE_PATH, v) for k,v in CORPORA_FILES.items()}
 
