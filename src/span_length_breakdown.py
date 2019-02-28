@@ -28,11 +28,14 @@ def all_spans(tree, delete_labels=(), del_word_mask=None):
                 right -= 1
             res = []
             if left < right:
-                for sublabel in label:
+                for sublabel in set(label):
                     if sublabel in delete_labels:
                         continue
-                    # TODO(nikita): handle multiplicity>1 in unary chain
-                    res.append((left, right, sublabel))
+                    for multiplicity in range(label.count(sublabel)):
+                        if multiplicity == 0:
+                            res.append((left, right, sublabel))
+                        else:
+                            res.append((left, right, sublabel + "[{}]".format(multiplicity)))
         else:
             res = []
 
