@@ -26,13 +26,13 @@ def all_spans(tree, delete_labels=(), del_word_mask=None):
                 left += 1
             while right > 0 and del_word_mask[right - 1]:
                 right -= 1
+            res = []
             if left < right:
                 for sublabel in label:
                     if sublabel in delete_labels:
                         continue
-                    res = [(left, right, sublabel)]
-            else:
-                res = []
+                    # TODO(nikita): handle multiplicity>1 in unary chain
+                    res.append((left, right, sublabel))
         else:
             res = []
 
