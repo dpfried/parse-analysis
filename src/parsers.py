@@ -6,7 +6,7 @@ TRANSITION_SYSTEMS = ["inorder", "topdown"]
 
 BEAM_SIZE = 10
 
-SHIFT_REDUCE_SEEDS = [1,2,3]
+SHIFT_REDUCE_SEEDS = [1,2,3,4,5]
 
 SHIFT_REDUCE_MODELS = []
 for system in TRANSITION_SYSTEMS:
@@ -24,15 +24,15 @@ for system in TRANSITION_SYSTEMS:
 
 CHART_MODELS = []
 
-CHART_SEEDS = [1]
-for system in ['chart']:
+CHART_SEEDS = [1,2,3,4,5]
+for system in ['chart', 'chartlstm']:
     for seed in CHART_SEEDS:
         model_name = "{}-seed={}".format(system, seed)
         d = {
             'name': model_name,
             'parser': system,
             'seed': seed,
-            'lex_rep': 'bert',
+            'lex_rep': 'bert' if system == 'chart' else 'lstm',
         }
         CHART_MODELS.append(d)
 

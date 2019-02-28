@@ -2,6 +2,8 @@ import subprocess
 from load_corpora import CORPORA_FILES, DECODE_NAME_NORM
 import os.path
 import parsers
+from multiprocessing import Pool
+import tqdm
 
 def call_analysis(gold_file, pred_file, output_prefix, analysis_path='../../berkeley-parser-analyser'):
 
@@ -10,12 +12,13 @@ def call_analysis(gold_file, pred_file, output_prefix, analysis_path='../../berk
     command = "python3 ../scripts/ensure_top.py < {} | python2 {} {} - {}".format(
         pred_file, classify, gold_file, output_prefix
     )
-    print(command)
 
     out = subprocess.run(command, shell=True, stderr=subprocess.PIPE)
     out_dec = out.stderr.decode('utf-8')
-    if out_dec.strip():
-        print(out_dec)
+    # if out_dec.strip():
+    #     print(out_dec)
+
+    return (command, out_dec.strip())
 
 
 if __name__ == "__main__":
@@ -38,15 +41,24 @@ if __name__ == "__main__":
     if not model_names:
         model_names = [model['name'] for model in parsers.ALL_MODELS]
 
+    pairs = []
     for corpus in corpora:
         for model_name in model_names:
-            print()
-            print("{} {}".format(corpus, model_name))
-            pred_file = parsers.get_predicted_file(DECODE_NAME_NORM[corpus], model_name, args.decodes_folder)
-            if not os.path.exists(pred_file):
-                print("no decode found for {}".format(pred_file))
-                continue
-            output_prefix = os.path.join(args.analysis_output_folder, "{}-{}".format(DECODE_NAME_NORM[corpus], model_name))
-            print("output to {}".format(output_prefix))
+            pairs.append((corpus, model_name))
 
-            call_analysis(CORPORA_FILES[corpus], pred_file, output_prefix)
+    def process(pair):
+        corpus, model_name = pair
+        pred_file = parsers.get_predicted_file(DECODE_NAME_NORM[corpus], model_name, args.decodes_folder)
+        if not os.path.exists(pred_file):
+            return (None, "no decode found for {}".format(pred_file))
+        output_prefix = os.path.join(args.analysis_output_folder, "{}-{}".format(DECODE_NAME_NORM[corpus], model_name))
+        return call_analysis(CORPORA_FILES[corpus], pred_file, output_prefix)
+
+    with Pool(4) as p:
+        results = list(tqdm.tqdm(p.imap(process, pairs), total=len(pairs), ncols=80))
+
+    for (command, error) in results:
+        if error:
+            print(command)
+            print(error)
+            print()

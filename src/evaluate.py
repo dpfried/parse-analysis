@@ -131,6 +131,17 @@ def evalb_from_files(predicted_path, gold_path, output_path=None, evalb_dir=None
     assert os.path.exists(evalb_program_path)
     assert os.path.exists(evalb_param_path)
 
+    sentence_scores = [None for _ in range(tree_count)] if tree_count is not None else []
+    fscore = FScore(
+        math.nan, math.nan, math.nan, math.nan,
+        sentence_scores=sentence_scores,
+    )
+
+    invalid_counts = InvalidCounts(None, None)
+
+    if not os.path.exists(predicted_path):
+        print("Test file {} does not exist!".format(predicted_path))
+        return fscore, invalid_counts, False
 
     command = "{} -p {} {} {} > {}".format(
         evalb_program_path,
@@ -144,14 +155,6 @@ def evalb_from_files(predicted_path, gold_path, output_path=None, evalb_dir=None
     if stderr_dec.strip():
         print(stderr_dec.strip())
 
-    sentence_scores = [None for _ in range(tree_count)] if tree_count is not None else []
-
-    fscore = FScore(
-        math.nan, math.nan, math.nan, math.nan,
-        sentence_scores=sentence_scores,
-        )
-
-    invalid_counts = InvalidCounts(None, None)
     with open(output_path) as infile:
         for line in infile:
             match = re.match(EVALB_PATTERN, line.strip())

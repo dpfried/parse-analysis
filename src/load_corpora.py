@@ -35,8 +35,22 @@ CORPORA_FILES = {
     'ewt_reviews_test': 'ewt/reviews.test.gold.stripped',
     'ewt_weblog_dev': 'ewt/weblog.dev.gold.stripped',
     'ewt_weblog_test': 'ewt/weblog.test.gold.stripped',
+
+    "ctb_9.0_broadcast_conversations": "ctb_9.0/broadcast_conversations.gold.stripped",
+    "ctb_9.0_broadcast_news": "ctb_9.0/broadcast_news.gold.stripped",
+    "ctb_9.0_chat_messages": "ctb_9.0/chat_messages.gold.stripped",
+    "ctb_9.0_conversational_speech": "ctb_9.0/conversational_speech.gold.stripped",
+    "ctb_9.0_discussion_forums": "ctb_9.0/discussion_forums.gold.stripped",
+    "ctb_9.0_newswire": "ctb_9.0/newswire.gold.stripped",
+    "ctb_9.0_weblogs": "ctb_9.0/weblogs.gold.stripped",
+    "ctb_5.1_dev": "ctb_5.1/dev.gold.stripped",
+    "ctb_5.1_test": "ctb_5.1/test.gold.stripped",
+    "ctb_5.1_train": "ctb_5.1/train.gold.stripped",
 }
 CORPORA_FILES = {k: os.path.join(BASE_PATH, v) for k,v in CORPORA_FILES.items()}
+
+CHINESE_CORPORA_NAMES = list(sorted(k for k in CORPORA_FILES if k.startswith("ctb_")))
+ENGLISH_CORPORA_NAMES = list(sorted(k for k in CORPORA_FILES if not k.startswith("ctb_")))
 
 CORPORA = None
 CORPORA_DESCRIPTIONS = {
@@ -68,6 +82,17 @@ CORPORA_DESCRIPTIONS = {
     'ewt_reviews_test': 'EWT Reviews (test)',
     'ewt_weblog_dev': 'EWT Weblog (dev)',
     'ewt_weblog_test': 'EWT Weblog (test)',
+
+    "ctb_9.0_broadcast_conversations": "CTB 9.0 Broadcast Conversations",
+    "ctb_9.0_broadcast_news": "CTB 9.0 Broadcast News",
+    "ctb_9.0_chat_messages": "CTB 9.0 Chat Messages",
+    "ctb_9.0_conversational_speech": "CTB 9.0 Conversational Speech",
+    "ctb_9.0_discussion_forums": "CTB 9.0 Discussion Forums",
+    "ctb_9.0_newswire": "CTB 9.0 Newswire",
+    "ctb_9.0_weblogs": "CTB 9.0 Weblogs",
+    "ctb_5.1_dev": "CTB 5.1 (dev)",
+    "ctb_5.1_test": "CTB 5.1 (test)",
+    "ctb_5.1_train": "CTB 5.1 (train)",
 }
 
 DECODE_NAME_NORM = {
@@ -77,7 +102,11 @@ DECODE_NAME_UNNORM = {
 }
 
 for corpus in CORPORA_FILES:
-    replaced = corpus.replace("_", "-")
+    if corpus.startswith("ctb"):
+        replaced = corpus.replace("ctb_5.1_", "ctb_5.1-")
+        replaced = replaced.replace("ctb_9.0_", "ctb_9.0-")
+    else:
+        replaced = corpus.replace("_", "-")
     if 'ewt' in replaced:
         replaced = replaced.replace("-dev", ".dev")
         replaced = replaced.replace("-test", ".test")
