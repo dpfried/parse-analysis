@@ -8,30 +8,49 @@ import load_corpora
 
 # %%
 
-def all_spans(tree):
+# Based on COLLINS_ch.prm
+DELETE_LABELS = set(".,:") | set(["``", "''", "PU"])
+
+def all_spans(tree, delete_labels=(), del_word_mask=None):
     if isinstance(tree, (trees.InternalTreebankNode, trees.LeafTreebankNode)):
         return all_spans(tree.convert())
     elif isinstance(tree, trees.LeafParseNode):
         return []
     else:
         label = tuple([l for l in tree.label if l != 'TOP'])
-        if label:
+        if label and del_word_mask is None:
             res = [(tree.left, tree.right, label)]
+        elif label and label not in delete_labels:
+            left, right = tree.left, tree.right
+            while left < len(del_word_mask) and del_word_mask[left]:
+                left += 1
+            while right > 0 and del_word_mask[right - 1]:
+                right -= 1
+            if left < right:
+                res = [(left, right, label)]
+            else:
+                res = []
         else:
             res = []
+
         for child in tree.children:
-            res += all_spans(child)
+            res += all_spans(child, delete_labels, del_word_mask)
+
         return res
 
 # %%
 
-def count_matched_spans(gold_trees, pred_trees):
+def count_matched_spans(gold_trees, pred_trees, delete_labels=DELETE_LABELS):
     matched_by_len = Counter()
     unmatched_by_len = Counter()
 
     for gold_tree, pred_tree in zip(gold_trees, pred_trees):
-        gold_spans = all_spans(gold_tree)
-        pred_spans = all_spans(pred_tree)
+        if delete_labels:
+            del_word_mask = [(leaf.tag in delete_labels) for leaf in list(gold_tree.leaves())]
+        else:
+            del_word_mask = None
+        gold_spans = all_spans(gold_tree, delete_labels, del_word_mask)
+        pred_spans = all_spans(pred_tree, delete_labels, del_word_mask)
 
         matched_spans = [span for span in gold_spans if span in pred_spans]
         unmatched_spans = [span for span in gold_spans if span not in pred_spans]
@@ -46,8 +65,8 @@ def count_matched_spans(gold_trees, pred_trees):
 
 # %%
 
-def get_span_accuracies(gold_trees, pred_trees):
-    matched_by_len, unmatched_by_len = count_matched_spans(gold_trees, pred_trees)
+def get_span_accuracies(gold_trees, pred_trees, delete_labels=DELETE_LABELS):
+    matched_by_len, unmatched_by_len = count_matched_spans(gold_trees, pred_trees, delete_labels)
 
     xs = []
     ys = []
@@ -63,8 +82,8 @@ def get_span_accuracies(gold_trees, pred_trees):
 
 # %%
 
-def get_span_accuracies_gte(gold_trees, pred_trees):
-    matched_by_len, unmatched_by_len = count_matched_spans(gold_trees, pred_trees)
+def get_span_accuracies_gte(gold_trees, pred_trees, delete_labels=DELETE_LABELS):
+    matched_by_len, unmatched_by_len = count_matched_spans(gold_trees, pred_trees, delete_labels)
 
     xs = []
     ys_numer = []
