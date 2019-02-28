@@ -20,7 +20,7 @@ def all_spans(tree, delete_labels=(), del_word_mask=None):
         label = tuple([l for l in tree.label if l != 'TOP'])
         if label and del_word_mask is None:
             res = [(tree.left, tree.right, label)]
-        elif label and label not in delete_labels:
+        elif label:
             left, right = tree.left, tree.right
             while left < len(del_word_mask) and del_word_mask[left]:
                 left += 1
