@@ -13,7 +13,7 @@ DELETE_LABELS = set(".,:") | set(["``", "''", "PU"])
 
 def all_spans(tree, delete_labels=(), del_word_mask=None):
     if isinstance(tree, (trees.InternalTreebankNode, trees.LeafTreebankNode)):
-        return all_spans(tree.convert())
+        return all_spans(tree.convert(), delete_labels, del_word_mask)
     elif isinstance(tree, trees.LeafParseNode):
         return []
     else:
