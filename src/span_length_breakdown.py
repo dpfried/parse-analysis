@@ -27,7 +27,10 @@ def all_spans(tree, delete_labels=(), del_word_mask=None):
             while right > 0 and del_word_mask[right - 1]:
                 right -= 1
             if left < right:
-                res = [(left, right, label)]
+                for sublabel in label:
+                    if sublabel in delete_labels:
+                        continue
+                    res = [(left, right, sublabel)]
             else:
                 res = []
         else:
