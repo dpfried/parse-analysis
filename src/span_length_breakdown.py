@@ -20,9 +20,9 @@ def convert_label(label):
         return label
 
 
-def all_spans(tree, delete_labels=(), del_word_mask=None):
+def all_spans(tree, delete_labels=(), del_word_mask=None, add_multiplicities=True):
     if isinstance(tree, (trees.InternalTreebankNode, trees.LeafTreebankNode)):
-        return all_spans(tree.convert(), delete_labels, del_word_mask)
+        return all_spans(tree.convert(), delete_labels, del_word_mask, add_multiplicities=add_multiplicities)
     elif isinstance(tree, trees.LeafParseNode):
         return []
     else:
@@ -39,19 +39,22 @@ def all_spans(tree, delete_labels=(), del_word_mask=None):
                 right -= 1
             res = []
             if left < right:
-                for sublabel in set(label):
+                for sublabel in set(label) if add_multiplicities else label:
                     if sublabel in delete_labels:
                         continue
-                    for multiplicity in range(label.count(sublabel)):
-                        if multiplicity == 0:
-                            res.append((left, right, sublabel))
-                        else:
-                            res.append((left, right, sublabel + "[{}]".format(multiplicity)))
+                    if add_multiplicities:
+                        for multiplicity in range(label.count(sublabel)):
+                            if multiplicity == 0:
+                                res.append((left, right, sublabel))
+                            else:
+                                res.append((left, right, sublabel + "[{}]".format(multiplicity)))
+                    else:
+                        res.append((left, right, sublabel))
         else:
             res = []
 
         for child in tree.children:
-            res += all_spans(child, delete_labels, del_word_mask)
+            res += all_spans(child, delete_labels, del_word_mask, add_multiplicities=add_multiplicities)
 
         return res
 
@@ -66,8 +69,8 @@ def count_matched_spans(gold_trees, pred_trees, delete_labels=DELETE_LABELS):
             del_word_mask = [(leaf.tag in delete_labels) for leaf in list(gold_tree.leaves())]
         else:
             del_word_mask = None
-        gold_spans = all_spans(gold_tree, delete_labels, del_word_mask)
-        pred_spans = all_spans(pred_tree, delete_labels, del_word_mask)
+        gold_spans = all_spans(gold_tree, delete_labels, del_word_mask, add_multiplicities=True)
+        pred_spans = all_spans(pred_tree, delete_labels, del_word_mask, add_multiplicities=True)
 
         matched_spans = [span for span in gold_spans if span in pred_spans]
         unmatched_spans = [span for span in gold_spans if span not in pred_spans]
@@ -90,8 +93,8 @@ def count_matched_spans_gold_and_pred(gold_trees, pred_trees, delete_labels=DELE
             del_word_mask = [(leaf.tag in delete_labels) for leaf in list(gold_tree.leaves())]
         else:
             del_word_mask = None
-        gold_spans = Counter(all_spans(gold_tree, delete_labels, del_word_mask))
-        pred_spans = Counter(all_spans(pred_tree, delete_labels, del_word_mask))
+        gold_spans = Counter(all_spans(gold_tree, delete_labels, del_word_mask, add_multiplicities=False))
+        pred_spans = Counter(all_spans(pred_tree, delete_labels, del_word_mask, add_multiplicities=False))
 
         for gs, gold_count in gold_spans.items():
             left, right, _ = gs
@@ -124,29 +127,6 @@ def get_span_accuracies(gold_trees, pred_trees, delete_labels=DELETE_LABELS):
     return xs, ys
 
 
-def get_span_f1s(gold_trees, pred_trees, delete_labels=DELETE_LABELS):
-    matched_by_len, gold_by_len, pred_by_len = count_matched_spans_gold_and_pred(
-        gold_trees, pred_trees, delete_labels=delete_labels
-    )
-
-    xs = []
-    rs = []
-    ps = []
-    fs = []
-    for x in range(1, 200):
-        try:
-            r = matched_by_len[x] / float(gold_by_len[x])
-            p = matched_by_len[x] / float(pred_by_len[x])
-            f = (2 * r * p) / (p + r)
-        except ZeroDivisionError:
-            continue
-        xs.append(x)
-        rs.append(r)
-        ps.append(p)
-        fs.append(f)
-
-    return xs, fs, rs, ps
-
 # %%
 
 def get_span_accuracies_gte(gold_trees, pred_trees, delete_labels=DELETE_LABELS):
@@ -172,7 +152,7 @@ def get_span_accuracies_gte(gold_trees, pred_trees, delete_labels=DELETE_LABELS)
     return xs, ys
 
 
-def get_span_f1s_gte(gold_trees, pred_trees, delete_labels=DELETE_LABELS):
+def get_span_counts(gold_trees, pred_trees, delete_labels=DELETE_LABELS):
     matched_by_len, gold_by_len, pred_by_len = count_matched_spans_gold_and_pred(
         gold_trees, pred_trees, delete_labels=delete_labels
     )
@@ -196,6 +176,16 @@ def get_span_f1s_gte(gold_trees, pred_trees, delete_labels=DELETE_LABELS):
         else:
             continue
 
+    return np.array(xs), np.array(matched_counts), np.array(gold_counts), np.array(pred_counts)
+
+def get_span_f1s_from_counts(xs, matched_counts, gold_counts, pred_counts):
+    rs = matched_counts / gold_counts
+    ps = matched_counts / pred_counts
+    fs = (2 * rs * ps) / (rs + ps)
+
+    return xs, fs, rs, ps
+
+def get_span_f1s_gte_from_counts(xs, matched_counts, gold_counts, pred_counts):
     matched_cum = np.cumsum(matched_counts[::-1])[::-1]
     gold_cum = np.cumsum(gold_counts[::-1])[::-1]
     pred_cum = np.cumsum(pred_counts[::-1])[::-1]
@@ -205,6 +195,12 @@ def get_span_f1s_gte(gold_trees, pred_trees, delete_labels=DELETE_LABELS):
     fs = (2 * rs * ps) / (ps + rs)
 
     return np.array(xs), fs, matched_cum, rs, gold_cum, ps, pred_cum
+
+def get_span_f1s(gold_trees, pred_trees, delete_labels=DELETE_LABELS):
+    return get_span_f1s_from_counts(*get_span_counts(gold_trees, pred_trees, delete_labels=delete_labels))
+
+def get_span_f1s_gte(gold_trees, pred_trees, delete_labels=DELETE_LABELS):
+     return get_span_f1s_gte_from_counts(*get_span_counts(gold_trees, pred_trees, delete_labels=delete_labels))
 
 # %%
 
