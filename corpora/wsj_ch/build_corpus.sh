@@ -25,15 +25,18 @@ python $ENSURE_TOP < $TRAIN > train.stripped
 python $ENSURE_TOP < $DEV > dev.stripped
 python $ENSURE_TOP < $TEST > test.stripped
 
-python $JACKKNIFE \
-  --props_file jackknife/wsj-0-18-bidirectional-nodistsim.tagger.props \
-  --model_file jackknife/wsj-0-18-bidirectional-nodistsim.tagger \
-  --working_dir jackknife \
-  --jackknife \
-  --jackknife_num_splits 10 \
-  --train_gold_file train.gold.stripped \
-  --train_pred_file train.pred.stripped \
-  --held_out_names dev test \
-  --held_out_gold_files dev.gold.stripped test.gold.stripped \
-  --held_out_pred_files dev.pred.stripped test.pred.stripped \
-  # --train_models
+python ${SCRIPT_DIR}/filter_length.py --max_length 23 < train.stripped > train.short.stripped
+
+
+# python $JACKKNIFE \
+#   --props_file jackknife/wsj-0-18-bidirectional-nodistsim.tagger.props \
+#   --model_file jackknife/wsj-0-18-bidirectional-nodistsim.tagger \
+#   --working_dir jackknife \
+#   --jackknife \
+#   --jackknife_num_splits 10 \
+#   --train_gold_file train.gold.stripped \
+#   --train_pred_file train.pred.stripped \
+#   --held_out_names dev test \
+#   --held_out_gold_files dev.gold.stripped test.gold.stripped \
+#   --held_out_pred_files dev.pred.stripped test.pred.stripped \
+#   # --train_models

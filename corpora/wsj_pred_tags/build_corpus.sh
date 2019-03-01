@@ -18,15 +18,15 @@ python $STRIP_FUNCTIONAL < $TRAIN | python $ENSURE_TOP > train.gold.stripped
 python $STRIP_FUNCTIONAL < $DEV | python $ENSURE_TOP > dev.gold.stripped
 python $STRIP_FUNCTIONAL < $TEST | python $ENSURE_TOP > test.gold.stripped
 
-python $PREDICT_TAGS \
-  --props_file ${TAGGER_DIR}/wsj-0-18-bidirectional-nodistsim.tagger.props \
-  --model_file ${TAGGER_DIR}/retrain-wsj-2-21-bidirectional-nodistsim.tagger \
-  --working_dir tag_predictions \
-  --train_gold_file train.gold.stripped \
-  --held_out_names dev test \
-  --held_out_gold_files dev.gold.stripped test.gold.stripped \
-  --held_out_pred_files dev.pred.stripped test.pred.stripped \
-  --train_pred_file train.pred.stripped \
-  --jackknife \
-  --jackknife_num_splits 10 \
-  --train_models \
+# python $PREDICT_TAGS \
+#   --props_file ${TAGGER_DIR}/wsj-0-18-bidirectional-nodistsim.tagger.props \
+#   --model_file ${TAGGER_DIR}/retrain-wsj-2-21-bidirectional-nodistsim.tagger \
+#   --working_dir tag_predictions \
+#   --train_gold_file train.gold.stripped \
+#   --held_out_names dev test \
+#   --held_out_gold_files dev.gold.stripped test.gold.stripped \
+#   --held_out_pred_files dev.pred.stripped test.pred.stripped \
+#   --train_pred_file train.pred.stripped \
+#   --jackknife \
+#   --jackknife_num_splits 10 \
+#   --train_models \

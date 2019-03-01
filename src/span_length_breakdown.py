@@ -1,10 +1,16 @@
-from collections import Counter
+from collections import Counter, namedtuple
 import functools
 
 import numpy as np
 
 import trees
 import load_corpora
+
+SpanCounts = namedtuple("SpanCounts", ["lengths", "match_counts", "gold_counts", "pred_counts"])
+
+SpanF1s = namedtuple("SpanF1s", ["lengths", "f1s", "recalls", "precisions"])
+
+SpanCumulativeF1s = namedtuple("SpanF1s", ["lengths", "f1s", "match_counts", "recalls", "gold_counts", "precisions", "pred_counts"])
 
 # %%
 
@@ -158,7 +164,7 @@ def get_span_counts(gold_trees, pred_trees, delete_labels=DELETE_LABELS):
     )
 
     xs = []
-    matched_counts = []
+    match_counts = []
     gold_counts = []
     pred_counts = []
 
@@ -170,31 +176,41 @@ def get_span_counts(gold_trees, pred_trees, delete_labels=DELETE_LABELS):
             assert matched == 0
         if gold > 0 or pred > 0:
             xs.append(x)
-            matched_counts.append(matched)
+            match_counts.append(matched)
             gold_counts.append(gold)
             pred_counts.append(pred)
         else:
             continue
 
-    return np.array(xs), np.array(matched_counts), np.array(gold_counts), np.array(pred_counts)
+    return SpanCounts(
+        lengths=np.array(xs),
+        match_counts=np.array(match_counts),
+        gold_counts=np.array(gold_counts),
+        pred_counts=np.array(pred_counts)
+    )
 
-def get_span_f1s_from_counts(xs, matched_counts, gold_counts, pred_counts):
-    rs = matched_counts / gold_counts
-    ps = matched_counts / pred_counts
+
+def get_span_f1s_from_counts(span_counts):
+    rs = span_counts.match_counts / span_counts.gold_counts
+    ps = span_counts.match_counts / span_counts.pred_counts
     fs = (2 * rs * ps) / (rs + ps)
+    return SpanF1s(lengths=span_counts.lengths, f1s=fs, recalls=rs, precisions=ps)
 
-    return xs, fs, rs, ps
+def get_span_f1s_gte_from_counts(span_counts):
+    match_cum = np.cumsum(span_counts.match_counts[::-1])[::-1]
+    gold_cum = np.cumsum(span_counts.gold_counts[::-1])[::-1]
+    pred_cum = np.cumsum(span_counts.pred_counts[::-1])[::-1]
 
-def get_span_f1s_gte_from_counts(xs, matched_counts, gold_counts, pred_counts):
-    matched_cum = np.cumsum(matched_counts[::-1])[::-1]
-    gold_cum = np.cumsum(gold_counts[::-1])[::-1]
-    pred_cum = np.cumsum(pred_counts[::-1])[::-1]
-
-    rs = matched_cum / gold_cum
-    ps = matched_cum / pred_cum
+    rs = match_cum / gold_cum
+    ps = match_cum / pred_cum
     fs = (2 * rs * ps) / (ps + rs)
 
-    return np.array(xs), fs, matched_cum, rs, gold_cum, ps, pred_cum
+    return SpanCumulativeF1s(
+        lengths=span_counts.lengths,
+        f1s=fs, match_counts=match_cum,
+        recalls=rs, gold_counts=gold_cum,
+        precisions=ps, pred_counts=pred_cum
+    )
 
 def get_span_f1s(gold_trees, pred_trees, delete_labels=DELETE_LABELS):
     return get_span_f1s_from_counts(*get_span_counts(gold_trees, pred_trees, delete_labels=delete_labels))

@@ -35,6 +35,7 @@ CORPORA_FILES = {
     'ewt_reviews_test': 'ewt/reviews.test.gold.stripped',
     'ewt_weblog_dev': 'ewt/weblog.dev.gold.stripped',
     'ewt_weblog_test': 'ewt/weblog.test.gold.stripped',
+    'ewt_all': 'ewt/all.gold.stripped',
 
     "ctb_9.0_broadcast_conversations": "ctb_9.0/broadcast_conversations.gold.stripped",
     "ctb_9.0_broadcast_news": "ctb_9.0/broadcast_news.gold.stripped",
@@ -82,6 +83,7 @@ CORPORA_DESCRIPTIONS = {
     'ewt_reviews_test': 'EWT Reviews (test)',
     'ewt_weblog_dev': 'EWT Weblog (dev)',
     'ewt_weblog_test': 'EWT Weblog (test)',
+    'ewt_all': 'EWT all',
 
     "ctb_9.0_broadcast_conversations": "CTB 9.0 Broadcast Conversations",
     "ctb_9.0_broadcast_news": "CTB 9.0 Broadcast News",

@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas
 import trees
-from span_length_breakdown import get_span_counts, get_span_f1s_from_counts, get_span_f1s_gte_from_counts
+from span_length_breakdown import get_span_counts
 import os.path
 
 def label_scatter(df, x_label='word_vocab', y_label='fscore', ax=None, color='b', **kwargs):
@@ -94,10 +94,7 @@ def get_decode_stats(models, corpora_names=load_corpora.CORPORA_FILES.keys(), in
             data['pred_file'] = pred_file
 
             if include_length_analysis:
-                span_counts = get_span_counts(gold_trees, pred_trees)
-                data['span_counts'] = np.array(span_counts)
-                data['span_f1s'] = np.array(get_span_f1s_from_counts(*span_counts))
-                data['span_f1s_gte'] = np.array(get_span_f1s_gte_from_counts(*span_counts))
+                data['span_counts'] = get_span_counts(gold_trees, pred_trees)
 
             decode_stats.append(data)
     return decode_stats

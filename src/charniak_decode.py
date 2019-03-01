@@ -46,5 +46,5 @@ if __name__ == "__main__":
         pred_file = os.path.join(args.decode_output_folder, output_fname(corpus, "pred"))
         retag_file = os.path.join(args.decode_output_folder, output_fname(corpus, "pred-tag-replaced"))
 
-        #call_bllip(gold_file, pred_file, args.bllip_root)
+        call_bllip(gold_file, pred_file, args.bllip_root)
         retag(gold_file, pred_file, retag_file)
