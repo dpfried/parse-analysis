@@ -94,23 +94,27 @@ def count_matched_spans_gold_and_pred(gold_trees, pred_trees, delete_labels=DELE
     pred_by_len = Counter()
     gold_by_len = Counter()
 
-    for gold_tree, pred_tree in zip(gold_trees, pred_trees):
-        if delete_labels:
-            del_word_mask = [(leaf.tag in delete_labels) for leaf in list(gold_tree.leaves())]
-        else:
-            del_word_mask = None
-        gold_spans = Counter(all_spans(gold_tree, delete_labels, del_word_mask, add_multiplicities=False))
-        pred_spans = Counter(all_spans(pred_tree, delete_labels, del_word_mask, add_multiplicities=False))
+    for i, (gold_tree, pred_tree) in enumerate(zip(gold_trees, pred_trees)):
+        try:
+            if delete_labels:
+                del_word_mask = [(leaf.tag in delete_labels) for leaf in list(gold_tree.leaves())]
+            else:
+                del_word_mask = None
+            gold_spans = Counter(all_spans(gold_tree, delete_labels, del_word_mask, add_multiplicities=False))
+            pred_spans = Counter(all_spans(pred_tree, delete_labels, del_word_mask, add_multiplicities=False))
 
-        for gs, gold_count in gold_spans.items():
-            left, right, _ = gs
-            gold_by_len[right - left] += gold_count
-            if gs in pred_spans:
-                matched_by_len[right - left] += min(gold_count, pred_spans[gs])
+            for gs, gold_count in gold_spans.items():
+                left, right, _ = gs
+                gold_by_len[right - left] += gold_count
+                if gs in pred_spans:
+                    matched_by_len[right - left] += min(gold_count, pred_spans[gs])
 
-        for ps, pred_count in pred_spans.items():
-            left, right, _ = ps
-            pred_by_len[right - left] += pred_count
+            for ps, pred_count in pred_spans.items():
+                left, right, _ = ps
+                pred_by_len[right - left] += pred_count
+        except Exception as e:
+            print("span count exception for tree index {}".format(i))
+            print(e)
 
     return matched_by_len, gold_by_len, pred_by_len
 

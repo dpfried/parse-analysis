@@ -19,7 +19,7 @@ def label_scatter(df, x_label='word_vocab', y_label='fscore', ax=None, color='b'
         ax.annotate(v['corpus_name'], (v[x_label], v[y_label]))
     return ax
 
-def plot(grouped_decodes, x_label='word_vocab', y_label='fscore', parser_type_pred=lambda p: p == 'inorder', best_fit=False, corpora_filter=None):
+def plot(grouped_decodes, x_label='word_vocab', y_label='fscore', parser_type_pred=lambda p: p == 'inorder', best_fit=False, corpora_filter=None, draw_max=False):
     grouped_decodes = grouped_decodes[~grouped_decodes[y_label].isnull()]
     if corpora_filter is not None:
         grouped_decodes = grouped_decodes[grouped_decodes.index.get_level_values('corpus_name').isin(corpora_filter)]
@@ -47,6 +47,9 @@ def plot(grouped_decodes, x_label='word_vocab', y_label='fscore', parser_type_pr
         x = group[x_label]
         y = group[y_label]
         if best_fit:
+            if draw_max:
+                x = list(x) + [1.0]
+                y = list(y) + [100.0]
             coeff = np.polyfit(x, y, 1)
             print("{} best fit: {}".format(key, coeff))
             ax.plot(np.unique(x), np.poly1d(np.polyfit(x, y, 1))(np.unique(x)), color=color)
@@ -98,6 +101,91 @@ def get_decode_stats(models, corpora_names=load_corpora.CORPORA_FILES.keys(), in
 
             decode_stats.append(data)
     return decode_stats
+
+KEY_COLS = ['corpus_name', 'lex_rep', 'parser']
+
+def error_delta(grouped, relative_to='ctb_5.1_test', cols=['fscore', 'complete_match']):
+    joined = {}
+    for (lex_rep, parser) in set(zip(grouped.index.get_level_values('lex_rep'), grouped.index.get_level_values('parser'))):
+        #         print(lex_rep, parser)
+        filt = grouped[(grouped.index.get_level_values('lex_rep') == lex_rep ) &
+                       (grouped.index.get_level_values('parser') == parser)]
+        baseline = filt[filt.index.get_level_values('corpus_name') == relative_to]
+        if len(baseline) == 1:
+            baseline = baseline.iloc[0]
+            baseline_error = 100.0 - baseline[cols]
+        else:
+            baseline = None
+        #         print(baseline[cols])
+        for key, row in filt.iterrows():
+            row_error = 100.0 - row[cols]
+            if baseline is not None:
+                delta = (row_error - baseline_error) / baseline_error
+            else:
+                delta = row_error * 0
+            joined[key] = pandas.concat(
+                [delta.rename({col: col + '_rer' for col in cols}), row],
+                axis=0
+            )
+    df = pandas.DataFrame(joined).transpose()
+    df.index.names = KEY_COLS
+    return df
+
+def parser_relative_error_delta(
+        grouped, relative_to=('charniak-WSJ-PTB3', 'words'), cols=['fscore', 'complete_match']
+):
+    joined = {}
+    for corpus in set(grouped.index.get_level_values('corpus_name')):
+        filt = grouped[grouped.index.get_level_values('corpus_name') == corpus]
+        baseline = filt[
+            (filt.index.get_level_values('parser') == relative_to[0]) &
+            (filt.index.get_level_values('lex_rep') == relative_to[1])
+            ]
+        if len(baseline) == 1:
+            baseline = baseline.iloc[0]
+            baseline_error = 100.0 - baseline[cols]
+        else:
+            baseline = None
+        for key, row in filt.iterrows():
+            row_error = 100.0 - row[cols]
+            if baseline is not None:
+                delta = (row_error - baseline_error) / baseline_error
+            else:
+                delta = row_error * 0
+            joined[key] = pandas.concat(
+                [delta.rename({col: col + '_rer' for col in cols}), row],
+                axis=0
+            )
+    df = pandas.DataFrame(joined).transpose()
+    df.index.names = KEY_COLS
+    return df
+
+def print_rer(df, models_lr, query='fscore', sort_by_perf=True):
+    print(" & " + " & ".join(' \multicolumn{2}{c}{' + name + '}' for name in models_lr.keys()) + r" \\")
+    print(' & ' + ' & '.join(' {} & $\\Delta$ Rel.Err'.format(query) for _ in models_lr.keys()) + r" \\")
+    first_model, first_lex_rep = next(iter(models_lr.values()))
+    if sort_by_perf:
+        corpus_order = df[(df.index.get_level_values('lex_rep') == first_lex_rep)&
+                          (df.index.get_level_values('parser') == first_model)][query] \
+            .sort_values(ascending=False).index.get_level_values('corpus_name')
+    else:
+        corpus_order = sorted(set(df.index.get_level_values('corpus_name')))
+
+    for corpus in corpus_order:
+        line = [load_corpora.CORPORA_SHORT_NAMES[corpus]]
+        for (model, lex_rep) in models_lr.values():
+            row = df[(df.index.get_level_values('corpus_name') == corpus) &
+                     (df.index.get_level_values('lex_rep') == lex_rep) &
+                     (df.index.get_level_values('parser') == model)]
+            if len(row) == 1:
+                row = row.iloc[0]
+                val = "{0:.2f}".format(row[query])
+                val_rer = "{0:+.1f}\\%".format(row[query + "_rer"] * 100)
+            else:
+                val = "--"
+                val_rer = "--"
+            line += [val, val_rer]
+        print(' & '.join(map(str, line)) + r"\\")
 
 
 # shift_reduce_models = []

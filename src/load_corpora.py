@@ -13,18 +13,25 @@ CORPORA_FILES = {
     'brown_cn': 'brown/cn.gold.stripped',
     'brown_cp': 'brown/cp.gold.stripped',
     'brown_cr': 'brown/cr.gold.stripped',
+
     'brown_train': 'brown/train.gold.stripped',
-    # 'brown_test': 'brown/test.gold.stripped',
-    # 'brown_test40': 'brown/test40.gold.stripped',
+    'brown_test': 'brown/test.gold.stripped',
+    'brown_test40': 'brown/test40.gold.stripped',
+    'brown_all': 'brown/all.gold.stripped',
+
     'genia_train': 'genia/train.gold.stripped',
     'genia_dev': 'genia/dev.gold.stripped',
-    # 'genia_test': 'genia/test.gold.stripped',
+    'genia_test': 'genia/test.gold.stripped',
+    'genia_all': 'genia/all.gold.stripped',
+
     # 'wsj_train': 'wsj_ch/train.stripped',
     # 'wsj_dev': 'wsj_ch/dev.stripped',
     # 'wsj_test': 'wsj_ch/test.stripped',
+
     'wsj_train': 'wsj_pred_tags/train.gold.stripped',
     'wsj_dev': 'wsj_pred_tags/dev.gold.stripped',
     'wsj_test': 'wsj_pred_tags/test.gold.stripped',
+
     'ewt_answers_dev': 'ewt/answers.dev.gold.stripped',
     'ewt_answers_test': 'ewt/answers.test.gold.stripped',
     'ewt_email_dev': 'ewt/email.dev.gold.stripped',
@@ -53,6 +60,13 @@ CORPORA_FILES = {k: os.path.join(BASE_PATH, v) for k,v in CORPORA_FILES.items()}
 CHINESE_CORPORA_NAMES = list(sorted(k for k in CORPORA_FILES if k.startswith("ctb_")))
 ENGLISH_CORPORA_NAMES = list(sorted(k for k in CORPORA_FILES if not k.startswith("ctb_")))
 
+BROWN_CORPORA_NAMES = list(sorted(k for k in CORPORA_FILES if k.startswith("brown_")))
+WSJ_CORPORA_NAMES = list(sorted(k for k in CORPORA_FILES if k.startswith("wsj_")))
+EWT_CORPORA_NAMES = list(sorted(k for k in CORPORA_FILES if k.startswith("ewt_")))
+GENIA_CORPORA_NAMES = list(sorted(k for k in CORPORA_FILES if k.startswith("genia_")))
+CTB5_CORPORA_FILES = list(sorted(k for k in CORPORA_FILES if k.startswith("ctb_5.1")))
+CTB9_CORPORA_NAMES = list(sorted(k for k in CORPORA_FILES if k.startswith("ctb_9.0")))
+
 CORPORA = None
 CORPORA_DESCRIPTIONS = {
     'brown': 'Brown (all)',
@@ -67,12 +81,17 @@ CORPORA_DESCRIPTIONS = {
     'brown_train': 'Brown (train)',
     'brown_test': 'Brown (test)',
     'brown_test40': 'Brown (test40)',
+    'brown_all': 'Brown (all)',
+
     'genia_train': 'Genia (train)',
     'genia_dev': 'Genia (dev)',
     'genia_test': 'Genia (test)',
+    'genia_all': 'Genia (all)',
+
     'wsj_train': 'WSJ (train)',
     'wsj_dev': 'WSJ (dev)',
     'wsj_test': 'WSJ (test)',
+
     'ewt_answers_dev': 'EWT Answers (dev)',
     'ewt_answers_test': 'EWT Answers (test)',
     'ewt_email_dev': 'EWT Email (dev)',
@@ -92,9 +111,60 @@ CORPORA_DESCRIPTIONS = {
     "ctb_9.0_discussion_forums": "CTB 9.0 Discussion Forums",
     "ctb_9.0_newswire": "CTB 9.0 Newswire",
     "ctb_9.0_weblogs": "CTB 9.0 Weblogs",
+
     "ctb_5.1_dev": "CTB 5.1 (dev)",
     "ctb_5.1_test": "CTB 5.1 (test)",
     "ctb_5.1_train": "CTB 5.1 (train)",
+}
+
+CORPORA_SHORT_NAMES = {
+    'brown': 'Brown All',
+    'brown_cf': 'Brown CF',
+    'brown_cg': 'Brown CG',
+    'brown_ck': 'Brown CK',
+    'brown_cl': 'Brown CL',
+    'brown_cm': 'Brown CM',
+    'brown_cn': 'Brown CN',
+    'brown_cp': 'Brown CP',
+    'brown_cr': 'Brown CR',
+
+    'brown_train': 'Brown Train',
+    'brown_test': 'Brown Test',
+    'brown_test40': 'Brown Test40',
+    'brown_all': 'Brown All',
+
+    'genia_train': 'Genia Train',
+    'genia_dev': 'Genia Dev',
+    'genia_test': 'Genia Test',
+    'genia_all': 'Genia All',
+
+    'wsj_train': 'WSJ Train',
+    'wsj_dev': 'WSJ Dev',
+    'wsj_test': 'WSJ Test',
+
+    'ewt_answers_dev': 'EWT AD',
+    'ewt_answers_test': 'EWT AT',
+    'ewt_email_dev': 'EWT ED',
+    'ewt_email_test': 'EWT ET',
+    'ewt_newsgroup_dev': 'EWT ND',
+    'ewt_newsgroup_test': 'EWT NT',
+    'ewt_reviews_dev': 'EWT RD',
+    'ewt_reviews_test': 'EWT RT',
+    'ewt_weblog_dev': 'EWT WD',
+    'ewt_weblog_test': 'EWT WT',
+    'ewt_all': 'EWT All',
+
+    "ctb_9.0_broadcast_conversations": "9.0 BC",
+    "ctb_9.0_broadcast_news": "9.0 BN",
+    "ctb_9.0_chat_messages": "9.0 CM",
+    "ctb_9.0_conversational_speech": "9.0 CS",
+    "ctb_9.0_discussion_forums": "9.0 DF",
+    "ctb_9.0_newswire": "9.0 NW",
+    "ctb_9.0_weblogs": "9.0 W",
+
+    "ctb_5.1_dev": "5.1 Dev",
+    "ctb_5.1_test": "5.1 Test",
+    "ctb_5.1_train": "5.1 Train",
 }
 
 DECODE_NAME_NORM = {
