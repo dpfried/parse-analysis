@@ -53,6 +53,13 @@ CORPORA_FILES = {k: os.path.join(BASE_PATH, v) for k,v in CORPORA_FILES.items()}
 CHINESE_CORPORA_NAMES = list(sorted(k for k in CORPORA_FILES if k.startswith("ctb_")))
 ENGLISH_CORPORA_NAMES = list(sorted(k for k in CORPORA_FILES if not k.startswith("ctb_")))
 
+BROWN_CORPORA_NAMES = list(sorted(k for k in CORPORA_FILES if k.startswith("brown_")))
+WSJ_CORPORA_NAMES = list(sorted(k for k in CORPORA_FILES if k.startswith("wsj_")))
+EWT_CORPORA_NAMES = list(sorted(k for k in CORPORA_FILES if k.startswith("ewt_")))
+GENIA_CORPORA_NAMES = list(sorted(k for k in CORPORA_FILES if k.startswith("genia_")))
+CTB5_CORPORA_FILES = list(sorted(k for k in CORPORA_FILES if k.startswith("ctb_5.1")))
+CTB9_CORPORA_NAMES = list(sorted(k for k in CORPORA_FILES if k.startswith("ctb_9.0")))
+
 CORPORA = None
 CORPORA_DESCRIPTIONS = {
     'brown': 'Brown (all)',
