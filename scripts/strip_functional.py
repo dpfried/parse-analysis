@@ -14,6 +14,11 @@ def remove_symbol_functionals(symbol):
     morph_split[0] = morph_split[0].split('=')[0]
     return '##'.join(morph_split)
 
+def _strip_tag_suffix(tag, sep='#'):
+    assert len(sep) == 1
+    ix = tag.find('#')
+    return tag[:ix]
+
 class PhraseTree(object):
 # adapted from https://github.com/jhcross/span-parser/blob/master/src/phrase_tree.py
 
@@ -21,8 +26,8 @@ class PhraseTree(object):
 
 
     def __init__(
-        self, 
-        symbol=None, 
+        self,
+        symbol=None,
         children=[],
         sentence=[],
         leaf=None,
@@ -31,8 +36,30 @@ class PhraseTree(object):
         self.children = children    # list of PhraseTree objects
         self.sentence = sentence
         self.leaf = leaf            # word at bottom level else None
-        
+
         self._str = None
+        self._left_span = None
+        self._right_span = None
+
+    def left_span(self):
+        if self.leaf is not None:
+            return self.leaf
+        elif self._left_span is not None:
+            return self._left_span
+        else:
+            assert self.children
+            self._left_span = self.children[0].left_span()
+            return self._left_span
+
+    def right_span(self):
+        if self.leaf is not None:
+            return self.leaf + 1
+        elif self._right_span is not None:
+            return self._right_span
+        else:
+            assert self.children
+            self._right_span = self.children[-1].right_span()
+            return self._right_span
 
     def remove_nodes(self, symbol_list):
         children = []
@@ -42,6 +69,45 @@ class PhraseTree(object):
             return children
         else:
             return [PhraseTree(self.symbol, children, self.sentence, leaf=self.leaf)]
+
+
+    def _zpar_contraction_spans(self):
+        if '#' in self.symbol:
+            return [(self.left_span(), self.right_span())]
+        else:
+            spans = []
+            for c in self.children:
+                spans += c._zpar_contraction_spans()
+            return spans
+
+    def _zpar_contract(self, ix, is_root, sentence):
+        if '#' in self.symbol:
+            assert not is_root
+            assert self.symbol.endswith('#t')
+            stripped = _strip_tag_suffix(self.symbol)
+            rep_node = PhraseTree(stripped, [], sentence, ix)
+            ix += 1
+        else:
+            children = []
+            for child in self.children:
+                rep_child, ix = child._zpar_contract(ix, False, sentence)
+                children.append(rep_child)
+            rep_node = PhraseTree(self.symbol, children, sentence, None)
+        return rep_node, ix
+
+    def zpar_contract(self):
+        contraction_spans = self._zpar_contraction_spans()
+        contracted = []
+        for (start, end) in contraction_spans:
+            words = [self.sentence[i][0] for i in range(start, end)]
+            tags = [self.sentence[i][1] for i in range(start, end)]
+            assert tags[0].endswith("#b")
+            stripped_tags = [_strip_tag_suffix(tag) for tag in tags]
+            assert all(st == stripped_tags[0] for st in stripped_tags)
+            contracted.append((''.join(words), stripped_tags[0]))
+        node, ix = self._zpar_contract(0, True, contracted)
+        assert ix == len(contracted)
+        return node
 
     def remove_tag_tokens(self, tok_tag_pred):
         # this doesn't remove tokens from sentence; just drops them from the tree. but so long as sentence is refered to by indices stored in PhraseTree.leaf, should be ok
@@ -60,17 +126,17 @@ class PhraseTree(object):
                 self._str = '({} {})'.format(self.symbol, childstr)
             else:
                 self._str = '({} {})'.format(
-                    self.sentence[self.leaf][1], 
+                    self.sentence[self.leaf][1],
                     self.sentence[self.leaf][0],
                 )
         return self._str
-        
+
     def pretty(self, level=0, marker='  '):
         pad = marker * level
 
         if self.leaf is not None:
             leaf_string = '({} {})'.format(
-                    self.symbol, 
+                    self.symbol,
                     self.sentence[self.leaf][0],
             )
             return pad + leaf_string
@@ -100,7 +166,7 @@ class PhraseTree(object):
     def _parse(line, index, sentence):
 
         "((...) (...) w/t (...)). returns pos and tree, and carries sent out."
-                
+
         assert line[index] == '(', "Invalid tree string {} at {}".format(line, index)
         index += 1
         symbol = None
@@ -116,7 +182,7 @@ class PhraseTree(object):
                     # symbol is here!
                     rpos = min(line.find(' ', index), line.find(')', index))
                     # see above N.B. (find could return -1)
-                
+
                     symbol = line[index:rpos] # (word, tag) string pair
 
                     index = rpos
@@ -127,7 +193,7 @@ class PhraseTree(object):
                         sentence.append((word, remove_symbol_functionals(symbol)))
                         leaf = len(sentence) - 1
                     index = rpos
-                
+
             if line[index] == " ":
                 index += 1
 
@@ -137,8 +203,8 @@ class PhraseTree(object):
             t = None
         else:
             t = PhraseTree(
-                symbol=remove_symbol_functionals(symbol), 
-                children=children, 
+                symbol=remove_symbol_functionals(symbol),
+                children=children,
                 sentence=sentence,
                 leaf=leaf,
             )
@@ -212,8 +278,8 @@ if __name__ == "__main__":
         else:
             if args.root_removed_replacement:
                 assert all(t.sentence == trees[0].sentence for t in trees[1:])
-                tree = PhraseTree(symbol=args.root_removed_replacement, 
-                                    children=trees, 
+                tree = PhraseTree(symbol=args.root_removed_replacement,
+                                    children=trees,
                                     sentence=trees[0].sentence,
                                     leaf=None)
             else:
