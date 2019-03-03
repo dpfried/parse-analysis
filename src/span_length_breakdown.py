@@ -10,7 +10,7 @@ SpanCounts = namedtuple("SpanCounts", ["lengths", "match_counts", "gold_counts",
 
 SpanF1s = namedtuple("SpanF1s", ["lengths", "f1s", "recalls", "precisions"])
 
-SpanCumulativeF1s = namedtuple("SpanF1s", ["lengths", "f1s", "match_counts", "recalls", "gold_counts", "precisions", "pred_counts"])
+SpanCumulativeF1s = namedtuple("SpanCumulativeF1s", ["lengths", "f1s", "match_counts", "recalls", "gold_counts", "precisions", "pred_counts"])
 
 # %%
 
@@ -221,6 +221,7 @@ def get_span_f1s(gold_trees, pred_trees, delete_labels=DELETE_LABELS):
 
 def get_span_f1s_gte(gold_trees, pred_trees, delete_labels=DELETE_LABELS):
      return get_span_f1s_gte_from_counts(*get_span_counts(gold_trees, pred_trees, delete_labels=delete_labels))
+
 
 # %%
 
