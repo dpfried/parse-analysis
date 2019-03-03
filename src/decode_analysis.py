@@ -160,6 +160,48 @@ def parser_relative_error_delta(
     df.index.names = KEY_COLS
     return df
 
+def print_stats(df, models_lr, queries=['fscore', 'complete_match'], sort_by_perf=True):
+    # print(" & " + " & ".join(
+    #     '\multicolumn{' + str(len(models_lr)) + '}{c}{' + query + '}'
+    #     for query in queries
+    # ) + r' \\')
+    # print(' & ' +
+    #       ' & '.join(
+    #           ' & '.join(model for model in models_lr.keys())
+    #           for _ in queries)
+    #       + r' \\')
+    print(" & " + " & ".join(
+        '\multicolumn{' + str(len(queries)) + '}{c}{' + model + '}'
+        for model in models_lr.keys()
+    ) + r' \\')
+    print(' & ' +
+          ' & '.join(
+              ' & '.join(query for query in queries)
+              for _ in models_lr.keys())
+          + r' \\')
+    first_model, first_lex_rep = next(iter(models_lr.values()))
+    if sort_by_perf:
+        corpus_order = df[(df.index.get_level_values('lex_rep') == first_lex_rep) &
+                          (df.index.get_level_values('parser') == first_model)][queries[0]] \
+            .sort_values(ascending=False).index.get_level_values('corpus_name')
+    else:
+        corpus_order = sorted(set(df.index.get_level_values('corpus_name')))
+
+    for corpus in corpus_order:
+        line = [load_corpora.CORPORA_SHORT_NAMES[corpus]]
+        for (model, lex_rep) in models_lr.values():
+            for query in queries:
+                row = df[(df.index.get_level_values('corpus_name') == corpus) &
+                         (df.index.get_level_values('lex_rep') == lex_rep) &
+                         (df.index.get_level_values('parser') == model)]
+                if len(row) == 1:
+                    row = row.iloc[0]
+                    val = "{0:.2f}".format(row[query])
+                else:
+                    val = "--"
+                line.append(val)
+        print(' & '.join(map(str, line)) + r"\\")
+
 def print_rer(df, models_lr, query='fscore', sort_by_perf=True):
     print(" & " + " & ".join(' \multicolumn{2}{c}{' + name + '}' for name in models_lr.keys()) + r" \\")
     print(' & ' + ' & '.join(' {} & $\\Delta$ Rel.Err'.format(query) for _ in models_lr.keys()) + r" \\")
