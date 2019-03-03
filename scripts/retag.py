@@ -21,9 +21,15 @@ def main():
     sys_lines = list(fileinput.input(files=[sys.argv[2]]))
 
     assert len(gold_lines) == len(sys_lines)
-    for gold_line, sys_line in zip(gold_lines, sys_lines):
-        output_string = remove_dev_unk(gold_line, sys_line)
-        print(output_string.rstrip())
+    for i, (gold_line, sys_line) in enumerate(zip(gold_lines, sys_lines)):
+        try:
+            output_string = remove_dev_unk(gold_line, sys_line)
+            print(output_string.rstrip())
+        except Exception as e:
+            sys.stderr.write("exception at line {}\n".format(i))
+            sys.stderr.write("{}\n".format(e))
+            print()
+
 
 if __name__ == '__main__':
     main()
