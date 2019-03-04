@@ -149,76 +149,83 @@ class CorporaCounts(object):
     def multiword_productions(self):
         return self._structural_counters[2]
 
+def generate_counts_intersection_frames():
+    counts_norescale = CorporaCounts(CORPORA)
+    counts_rescale = CorporaCounts(CORPORA, length_rescale_for=CORPORA['wsj_train'])
+
+    counts_intersection_frames = {}
+    for (counts, count_name) in [(counts_norescale, "norescale"), (counts_rescale, "rescale")]:
+        for (lang_corpora, lang_name, reference_corpus) in [
+            (load_corpora.ENGLISH_CORPORA_NAMES, "english", "wsj_train"),
+            (load_corpora.CHINESE_CORPORA_NAMES, "chinese", "ctb_5.1_train")
+        ]:
+            by_corpus = {}
+            for k in lang_corpora:
+                by_corpus[k] = {'name': k}
+
+            if counts == counts_norescale:
+                print('{} [no rescale]'.format(lang_name))
+            else:
+                print('{} [rescaled to match training length distribution]'.format(lang_name))
+
+            print('# Word vocabularies')
+            for k in lang_corpora:
+                val = histogram_intersection(counts.vocabs[reference_corpus], counts.vocabs[k])
+                by_corpus[k]['word_vocab'] = val
+                print(f'{CORPORA_DESCRIPTIONS[k]: <20} {val:.2f}')
+
+            print()
+            print()
+            print('# Productions')
+            for k in lang_corpora:
+                val = histogram_intersection(counts.productions[reference_corpus], counts.productions[k])
+                by_corpus[k]['productions'] = val
+                print(f'{CORPORA_DESCRIPTIONS[k]: <20} {val:.2f}')
+
+            print()
+            print()
+            print('# Multi-word productions')
+            for k in lang_corpora:
+                val = histogram_intersection(counts.multiword_productions[reference_corpus], counts.multiword_productions[k])
+                by_corpus[k]['multi_word_productions'] = val
+                print(f'{CORPORA_DESCRIPTIONS[k]: <20} {val:.2f}')
+
+            print()
+            print()
+            print('# Multi-word span labels')
+            for k in lang_corpora:
+                val = histogram_intersection(counts.multiword_labels[reference_corpus], counts.multiword_labels[k])
+                by_corpus[k]['multi_word_span_labels'] = val
+                print(f'{CORPORA_DESCRIPTIONS[k]: <20} {val:.2f}')
+
+            print()
+            print()
+            print('# Average length')
+            for k in lang_corpora:
+                val = sum([kk * vv for kk, vv in counts.lengths[k].items()]) / sum(counts.lengths[k].values())
+                by_corpus[k]['length'] = val
+                print(f'{CORPORA_DESCRIPTIONS[k]: <20} {val:.2f}')
+
+            print()
+            print()
+            print('# Length histogram intersection')
+            for k in lang_corpora:
+                val = histogram_intersection(counts.lengths[reference_corpus], counts.lengths[k])
+                by_corpus[k]['length_hist_intersection'] = val
+                print(f'{CORPORA_DESCRIPTIONS[k]: <20} {val:.2f}')
+
+            print()
+            print()
+
+            counts_intersection_frames[(lang_name, count_name)] = pandas.DataFrame(by_corpus.values())
+    return counts_intersection_frames
+
 # %%
-
-counts_norescale = CorporaCounts(CORPORA)
-counts_rescale = CorporaCounts(CORPORA, length_rescale_for=CORPORA['wsj_train'])
-
-# %%
-
-counts_intersection_frames = {}
-
-for (counts, count_name) in [(counts_norescale, "norescale"), (counts_rescale, "rescale")]:
-    for (lang_corpora, lang_name, reference_corpus) in [
-        (load_corpora.ENGLISH_CORPORA_NAMES, "english", "wsj_train"),
-        (load_corpora.CHINESE_CORPORA_NAMES, "chinese", "ctb_5.1_train")
-    ]:
-        by_corpus = {}
-        for k in lang_corpora:
-            by_corpus[k] = {'name': k}
-
-        if counts == counts_norescale:
-            print('{} [no rescale]'.format(lang_name))
-        else:
-            print('{} [rescaled to match training length distribution]'.format(lang_name))
-
-        print('# Word vocabularies')
-        for k in lang_corpora:
-            val = histogram_intersection(counts.vocabs[reference_corpus], counts.vocabs[k])
-            by_corpus[k]['word_vocab'] = val
-            print(f'{CORPORA_DESCRIPTIONS[k]: <20} {val:.2f}')
-
-        print()
-        print()
-        print('# Productions')
-        for k in lang_corpora:
-            val = histogram_intersection(counts.productions[reference_corpus], counts.productions[k])
-            by_corpus[k]['productions'] = val
-            print(f'{CORPORA_DESCRIPTIONS[k]: <20} {val:.2f}')
-
-        print()
-        print()
-        print('# Multi-word productions')
-        for k in lang_corpora:
-            val = histogram_intersection(counts.multiword_productions[reference_corpus], counts.multiword_productions[k])
-            by_corpus[k]['multi_word_productions'] = val
-            print(f'{CORPORA_DESCRIPTIONS[k]: <20} {val:.2f}')
-
-        print()
-        print()
-        print('# Multi-word span labels')
-        for k in lang_corpora:
-            val = histogram_intersection(counts.multiword_labels[reference_corpus], counts.multiword_labels[k])
-            by_corpus[k]['multi_word_span_labels'] = val
-            print(f'{CORPORA_DESCRIPTIONS[k]: <20} {val:.2f}')
-
-        print()
-        print()
-        print('# Average length')
-        for k in lang_corpora:
-            val = sum([kk * vv for kk, vv in counts.lengths[k].items()]) / sum(counts.lengths[k].values())
-            by_corpus[k]['length'] = val
-            print(f'{CORPORA_DESCRIPTIONS[k]: <20} {val:.2f}')
-
-        print()
-        print()
-        print('# Length histogram intersection')
-        for k in lang_corpora:
-            val = histogram_intersection(counts.lengths[reference_corpus], counts.lengths[k])
-            by_corpus[k]['length_hist_intersection'] = val
-            print(f'{CORPORA_DESCRIPTIONS[k]: <20} {val:.2f}')
-
-        print()
-        print()
-
-        counts_intersection_frames[(lang_name, count_name)] = pandas.DataFrame(by_corpus.values())
+import pickle
+try:
+    with open('count_intersection_frames.pkl', 'rb') as f:
+        counts_intersection_frames = pickle.load(f)
+except:
+    counts_intersection_frames = generate_counts_intersection_frames()
+    with open('count_intersection_frames.pkl', 'wb') as f:
+        pickle.dump(counts_intersection_frames, f)

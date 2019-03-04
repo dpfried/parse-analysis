@@ -41,10 +41,12 @@ for system in ['chart', 'chartlstm']:
 
 
 CHARNIAK_MODELS = []
-CHARNIAK_CONDITIONS = ["WSJ-PTB3", "WSJ-PTB3-no-rerank",
+CHARNIAK_CONDITIONS = ["WSJ-PTB3",
+                       "WSJ-PTB3-no-rerank",
                        #"WSJ+Gigaword",
                        "WSJ+Gigaword-v2",
-                       #"SANCL2012-Uniform", "GENIA+PubMed"
+                       "SANCL2012-Uniform",
+                       "GENIA+PubMed"
                        ]
 for condition in CHARNIAK_CONDITIONS:
     model_name = "charniak-{}".format(condition)
@@ -56,6 +58,14 @@ for condition in CHARNIAK_CONDITIONS:
     }
     CHARNIAK_MODELS.append(d)
 
+BERKELEY_ENGLISH_MODELS = [
+    {
+    'name': 'berkeley-sm6',
+    'parser': 'berkeley',
+    'seed': 1,
+    'lex_rep': 'words',
+    }
+]
 
 ZPAR_MODELS = [
     {
@@ -66,8 +76,21 @@ ZPAR_MODELS = [
     }
 ]
 
-ENGLISH_MODELS = SHIFT_REDUCE_MODELS + CHART_MODELS + CHARNIAK_MODELS
-CHINESE_MODELS = SHIFT_REDUCE_MODELS + [model for model in CHART_MODELS if model['parser'] != 'chartlstm'] + ZPAR_MODELS
+BERKELEY_CHINESE_MODELS = [
+    {
+        'name': 'berkeley-chn-sm5',
+        'parser': 'berkeley',
+        'seed': 1,
+        'lex_rep': 'words,'
+    }
+]
+
+ENGLISH_MODELS = SHIFT_REDUCE_MODELS + CHART_MODELS + CHARNIAK_MODELS + BERKELEY_ENGLISH_MODELS
+
+CHINESE_MODELS = SHIFT_REDUCE_MODELS +  \
+                 [model for model in CHART_MODELS if model['parser'] != 'chartlstm'] + \
+                 ZPAR_MODELS +  \
+                 BERKELEY_CHINESE_MODELS
 
 CHARNIAK_REPORTED = [
     {
